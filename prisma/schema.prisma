@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  BUSINESS_ADMIN
+  CUSTOMER
+  DELIVERY_STAFF
+}
+
+enum OrderType {
+  DELIVERY
+  SELF_RECEIVE
+  COUNTER
+}
+
+enum OrderStatus {
+  PLACED
+  ACCEPTED
+  PREPARING
+  READY
+  ASSIGNED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  ONLINE
+  CASH
+  UPI
+  OTHER
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  outlets   Outlet[]
+  users     User[]
+  products  Product[]
+}
+
+model Outlet {
+  id              String   @id @default(cuid())
+  name            String
+  address         String?  
+  phone           String?
+  latitude        Float?
+  longitude       Float?
+  deliveryRadiusKm Float    @default(5)
+    businessType    String   @default("FIXED_SHOP")
+  locationUpdatedAt DateTime?
+  deliveryCharge  Float     @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id])
+
+  users           User[]
+  outletProducts  OutletProduct[]
+  orders          Order[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
+
+  outletId     String?
+  outlet       Outlet?  @relation(fields: [outletId], references: [id])
+
+  orders       Order[]  @relation("CustomerOrders")
+  deliveries   Delivery[] @relation("DeliveryStaff")
+
+  addresses Address[]
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  imageUrl     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+
+  outletProducts OutletProduct[]
+  orderItems     OrderItem[]
+}
+
+model OutletProduct {
+  id          String   @id @default(cuid())
+  price       Float
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id])
+
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@unique([outletId, productId])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber    String        @unique
+  type            OrderType
+  status          OrderStatus   @default(PLACED)
+
+  subtotal        Float
+  deliveryCharge Float         @default(0)
+  total           Float
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customerId      String?
+  customer        User?         @relation("CustomerOrders", fields: [customerId], references: [id])
+
+  outletId        String
+  outlet          Outlet        @relation(fields: [outletId], references: [id])
+
+  deliveryAddress String?
+  customerPhone   String?
+  customerName    String?
+  customerLatitude  Float?
+customerLongitude Float?
+businessType String @default("FIXED_SHOP")
+locationUpdatedAt DateTime?
+
+    queueNumber     Int?
+  queuePosition   Int?
+
+  items           OrderItem[]
+  payment         Payment?
+  delivery        Delivery?
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id])
+
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amount      Float
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  transactionId String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  orderId     String        @unique
+  order       Order         @relation(fields: [orderId], references: [id])
+}
+
+model Delivery {
+  id             String   @id @default(cuid())
+  status         String
+  assignedAt     DateTime?
+  pickedUpAt     DateTime?
+  deliveredAt    DateTime?
+
+  orderId        String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  deliveryStaffId String?
+  deliveryStaff   User?  @relation("DeliveryStaff", fields: [deliveryStaffId], references: [id])
+}
+
+model Address {
+  id                String   @id @default(cuid())
+  customerId        String
+  label             String
+  fullName          String
+  phone             String
+  addressLine       String
+  landmark          String?
+  latitude          Float?
+  longitude         Float?
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer          User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+    
+}
