@@ -1,14 +1,25 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = process.env.SESSION_SECRET;
+async function getSecretKey() {
+  const { env } = getCloudflareContext();
 
-if (!secret) {
-  throw new Error("SESSION_SECRET is not configured.");
+  const secret =
+    (env as Cloudflare.Env & {
+      SESSION_SECRET?: string;
+    }).SESSION_SECRET ||
+    process.env.SESSION_SECRET;
+
+  if (!secret) {
+    throw new Error("SESSION_SECRET is not configured.");
+  }
+
+  return new TextEncoder().encode(secret);
 }
 
-const secretKey = new TextEncoder().encode(secret);
-
 export async function createSession(userId: string) {
+  const secretKey = await getSecretKey();
+
   return await new SignJWT({ userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -18,6 +29,8 @@ export async function createSession(userId: string) {
 
 export async function verifySession(token: string) {
   try {
+    const secretKey = await getSecretKey();
+
     const { payload } = await jwtVerify(token, secretKey);
 
     if (!payload.userId || typeof payload.userId !== "string") {
@@ -25,7 +38,8 @@ export async function verifySession(token: string) {
     }
 
     return payload.userId;
-  } catch {
+  } catch (error) {
+    console.error("Session verification error:", error);
     return null;
   }
 }

@@ -1,12 +1,14 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
+    const body = (await request.json()) as {
+  email?: string;
+  password?: string;
+};
     const { email, password } = body;
 
     if (!email?.trim() || !password) {
@@ -30,9 +32,17 @@ export async function POST(request: Request) {
     }
 
     const passwordMatch = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
+  password,
+  user.passwordHash
+);
+
+console.log("LOGIN DEBUG:", {
+  email: user.email,
+  role: user.role,
+  hash: user.passwordHash,
+  passwordLength: password.length,
+  passwordMatch,
+});
 
     if (!passwordMatch) {
       return NextResponse.json(

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as any;
 
     const orderId =
       typeof body.orderId === "string"
@@ -160,3 +160,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

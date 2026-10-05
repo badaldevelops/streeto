@@ -1,9 +1,26 @@
-import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { PrismaD1 } from "@prisma/adapter-d1";
 import { PrismaClient } from "../generated/prisma/client";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL!,
-});
+function createPrisma() {
+  const { env } = getCloudflareContext();
 
-export const prisma = new PrismaClient({ adapter });
+  const adapter = new PrismaD1(
+    (env as Cloudflare.Env).streeto_db
+  );
+
+  return new PrismaClient({ adapter });
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = createPrisma();
+    const value = client[property as keyof PrismaClient];
+
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+
+    return value;
+  },
+});

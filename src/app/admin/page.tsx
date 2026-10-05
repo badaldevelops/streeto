@@ -1,5 +1,7 @@
 "use client";
 
+import "./admin.css";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -23,16 +25,46 @@ type Company = {
   name: string;
 };
 
+type OutletUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  isActive: boolean;
+};
+
+type Outlet = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  isActive: boolean;
+  company: {
+    id: string;
+    name: string;
+  };
+  users: OutletUser[];
+  _count: {
+    orders: number;
+    users: number;
+  };
+};
+
 export default function AdminPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+
   const [error, setError] = useState("");
+  const [outletsError, setOutletsError] = useState("");
 
   const [businessName, setBusinessName] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
@@ -44,6 +76,11 @@ export default function AdminPage() {
   const [adminMessage, setAdminMessage] = useState("");
   const [adminError, setAdminError] = useState("");
 
+  const [newBusinessName, setNewBusinessName] = useState("");
+  const [creatingBusiness, setCreatingBusiness] = useState(false);
+  const [businessMessage, setBusinessMessage] = useState("");
+  const [businessError, setBusinessError] = useState("");
+
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -54,7 +91,10 @@ export default function AdminPage() {
           return;
         }
 
-        const meData = await meResponse.json();
+        const meData = (await meResponse.json()) as {
+          authenticated?: boolean;
+          user?: User;
+        };
 
         if (
           !meData.authenticated ||
@@ -66,29 +106,53 @@ export default function AdminPage() {
 
         setUser(meData.user);
 
-        const [statsResponse, companiesResponse] =
-          await Promise.all([
-            fetch("/api/admin-stats"),
-            fetch("/api/admin/companies"),
-          ]);
+        const [
+          statsResponse,
+          companiesResponse,
+          outletsResponse,
+        ] = await Promise.all([
+          fetch("/api/admin-stats"),
+          fetch("/api/admin/companies"),
+          fetch("/api/admin/outlets"),
+        ]);
 
-        const statsData = await statsResponse.json();
+        const statsData = (await statsResponse.json()) as {
+          error?: string;
+          stats?: Stats;
+        };
 
         if (!statsResponse.ok) {
           setError(
             statsData.error ||
               "Unable to load dashboard statistics."
           );
-        } else {
+        } else if (statsData.stats) {
           setStats(statsData.stats);
         }
 
         if (companiesResponse.ok) {
           const companiesData =
-            await companiesResponse.json();
+            (await companiesResponse.json()) as {
+              companies?: Company[];
+            };
 
-          setCompanies(
-            companiesData.companies || []
+          setCompanies(companiesData.companies || []);
+        }
+
+        if (outletsResponse.ok) {
+          const outletsData =
+            (await outletsResponse.json()) as {
+              outlets?: Outlet[];
+            };
+
+          setOutlets(outletsData.outlets || []);
+        } else {
+          const data = (await outletsResponse.json()) as {
+            error?: string;
+          };
+
+          setOutletsError(
+            data.error || "Unable to load outlets."
           );
         }
       } catch (error) {
@@ -113,6 +177,65 @@ export default function AdminPage() {
       console.error(error);
     } finally {
       router.replace("/login");
+    }
+  }
+
+  async function handleCreateBusiness(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    setCreatingBusiness(true);
+    setBusinessMessage("");
+    setBusinessError("");
+
+    try {
+      const response = await fetch("/api/admin/companies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newBusinessName,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        success?: boolean;
+        company?: Company;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setBusinessError(
+          data.error || "Unable to create business."
+        );
+        return;
+      }
+
+      if (data.company) {
+        setCompanies((current) =>
+          [...current, data.company!].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )
+        );
+
+        setSelectedCompanyId(data.company.id);
+      }
+
+      setBusinessMessage(
+        "Business created successfully."
+      );
+
+      setNewBusinessName("");
+    } catch (error) {
+      console.error(error);
+
+      setBusinessError(
+        "Unable to create business."
+      );
+    } finally {
+      setCreatingBusiness(false);
     }
   }
 
@@ -143,7 +266,9 @@ export default function AdminPage() {
         }
       );
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        error?: string;
+      };
 
       if (!response.ok) {
         setAdminError(
@@ -164,6 +289,7 @@ export default function AdminPage() {
       setSelectedCompanyId("");
     } catch (error) {
       console.error(error);
+
       setAdminError(
         "Unable to create Business Admin."
       );
@@ -174,12 +300,48 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-100 px-5 py-10">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-gray-600">
+      <main className="admin-page">
+        <div className="admin-container">
+          <div className="admin-header">
+            <div className="admin-badge">
+              SUPER ADMIN
+            </div>
+
+            <div className="admin-title">
               Loading dashboard...
+            </div>
+
+            <p className="admin-subtitle">
+              Preparing your platform administration panel.
             </p>
+          </div>
+
+          <div className="admin-stats">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="admin-stat"
+              >
+                <div
+                  style={{
+                    height: 12,
+                    width: "40%",
+                    background: "#e5e7eb",
+                    borderRadius: 8,
+                  }}
+                />
+
+                <div
+                  style={{
+                    height: 36,
+                    width: "55%",
+                    background: "#f3f4f6",
+                    borderRadius: 10,
+                    marginTop: 18,
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </main>
@@ -191,127 +353,238 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 px-5 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-500">
-                BUSINESSHUB PLATFORM
-              </p>
+    <main className="admin-page">
+      <div className="admin-container">
 
-              <h1 className="mt-2 text-3xl font-bold">
+        {/* HEADER */}
+        <section className="admin-header">
+          <div className="admin-header-row">
+            <div>
+              <div className="admin-badge">
+                SUPER ADMIN
+              </div>
+
+              <h1 className="admin-title">
                 Platform Admin Dashboard
               </h1>
 
-              <p className="mt-2 text-gray-600">
-                Welcome, {user.name}.
+              <p className="admin-subtitle">
+                Manage businesses, outlets and platform
+                activity from one place.
               </p>
 
-              <p className="mt-1 text-sm text-gray-500">
-                {user.email}
-              </p>
+              <div className="admin-user-row">
+                <div className="admin-user-box">
+                  <p className="admin-user-label">
+                    Admin
+                  </p>
+
+                  <p className="admin-user-value">
+                    {user.name}
+                  </p>
+                </div>
+
+                <div className="admin-user-box">
+                  <p className="admin-user-label">
+                    Email
+                  </p>
+
+                  <p className="admin-user-value">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+              className="admin-logout"
             >
               {loggingOut
                 ? "Logging out..."
                 : "Logout"}
             </button>
           </div>
-        </div>
+        </section>
 
+        {/* ERROR */}
         {error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
+          <div className="admin-alert admin-alert-error">
             {error}
           </div>
         )}
 
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">
+        {/* STATS */}
+        <section className="admin-stats">
+          <div className="admin-stat">
+            <p className="admin-stat-label">
               Today&apos;s Orders
             </p>
 
-            <p className="mt-2 text-3xl font-bold">
+            <p className="admin-stat-value">
               {stats?.todaysOrders ?? 0}
+            </p>
+
+            <p className="admin-stat-description">
+              Orders placed today
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">
+          <div className="admin-stat">
+            <p className="admin-stat-label">
               Today&apos;s Sales
             </p>
 
-            <p className="mt-2 text-3xl font-bold">
+            <p className="admin-stat-value">
               ₹{stats?.todaysSales ?? 0}
+            </p>
+
+            <p className="admin-stat-description">
+              Total sales today
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">
+          <div className="admin-stat">
+            <p className="admin-stat-label">
               Online Orders
             </p>
 
-            <p className="mt-2 text-3xl font-bold">
+            <p className="admin-stat-value">
               {stats?.onlineOrders ?? 0}
+            </p>
+
+            <p className="admin-stat-description">
+              Online orders today
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">
+          <div className="admin-stat">
+            <p className="admin-stat-label">
               Offline Orders
             </p>
 
-            <p className="mt-2 text-3xl font-bold">
+            <p className="admin-stat-value">
               {stats?.offlineOrders ?? 0}
             </p>
-          </div>
-        </div>
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-          <div>
-            <p className="text-sm font-semibold text-gray-500">
-              CLIENT MANAGEMENT
-            </p>
-
-            <h2 className="mt-1 text-2xl font-bold">
-              Create Business Admin
-            </h2>
-
-            <p className="mt-2 text-sm text-gray-600">
-              Create an admin account for a business.
-              The account will only belong to the
-              selected business.
+            <p className="admin-stat-description">
+              Counter / offline orders
             </p>
           </div>
+        </section>
+
+        {/* CREATE BUSINESS */}
+        <section className="admin-section">
+          <p className="admin-section-label">
+            Business Management
+          </p>
+
+          <h2 className="admin-section-title">
+            Create Business
+          </h2>
+
+          <p className="admin-section-description">
+            Create a new business that can later have
+            outlets, products and a Business Admin.
+          </p>
+
+          <form
+            onSubmit={handleCreateBusiness}
+            className="admin-form admin-form-business"
+          >
+            <div className="admin-field">
+              <label htmlFor="new-business-name">
+                Business Name
+              </label>
+
+              <input
+                id="new-business-name"
+                type="text"
+                value={newBusinessName}
+                onChange={(event) =>
+                  setNewBusinessName(event.target.value)
+                }
+                placeholder="Enter business name"
+                required
+                className="admin-input"
+              />
+            </div>
+
+            <div className="admin-submit-wrap">
+              <button
+                type="submit"
+                disabled={creatingBusiness}
+                className="admin-button"
+              >
+                {creatingBusiness
+                  ? "Creating..."
+                  : "Create Business"}
+              </button>
+            </div>
+          </form>
+
+          {businessMessage && (
+            <div className="admin-alert admin-alert-success">
+              {businessMessage}
+            </div>
+          )}
+
+          {businessError && (
+            <div className="admin-alert admin-alert-error">
+              {businessError}
+            </div>
+          )}
+        </section>
+
+        {/* CREATE BUSINESS ADMIN */}
+        <section className="admin-section">
+          <p className="admin-section-label">
+            Account Management
+          </p>
+
+          <h2 className="admin-section-title">
+            Create Business Admin
+          </h2>
+
+          <p className="admin-section-description">
+            Create a Business Admin account for an
+            existing business.
+          </p>
 
           <form
             onSubmit={handleCreateBusinessAdmin}
-            className="mt-6 grid gap-5 md:grid-cols-2"
+            className="admin-form admin-form-admin"
           >
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Business
-              </label>
+            <div className="admin-field">
+              <label>Name</label>
+
+              <input
+                type="text"
+                value={businessName}
+                onChange={(event) =>
+                  setBusinessName(event.target.value)
+                }
+                required
+                placeholder="Business Admin name"
+                className="admin-input"
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>Business</label>
 
               <select
                 value={selectedCompanyId}
                 onChange={(event) =>
-                  setSelectedCompanyId(
-                    event.target.value
-                  )
+                  setSelectedCompanyId(event.target.value)
                 }
                 required
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                className="admin-select"
               >
                 <option value="">
-                  Select Business
+                  Select business
                 </option>
 
                 {companies.map((company) => (
@@ -325,27 +598,8 @@ export default function AdminPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Name
-              </label>
-
-              <input
-                type="text"
-                value={businessName}
-                onChange={(event) =>
-                  setBusinessName(event.target.value)
-                }
-                required
-                placeholder="Business Admin name"
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Email
-              </label>
+            <div className="admin-field">
+              <label>Email</label>
 
               <input
                 type="email"
@@ -355,14 +609,12 @@ export default function AdminPage() {
                 }
                 required
                 placeholder="admin@example.com"
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                className="admin-input"
               />
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Phone
-              </label>
+            <div className="admin-field">
+              <label>Phone</label>
 
               <input
                 type="tel"
@@ -371,35 +623,31 @@ export default function AdminPage() {
                   setBusinessPhone(event.target.value)
                 }
                 placeholder="10 digit phone"
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                className="admin-input"
               />
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Password
-              </label>
+            <div className="admin-field">
+              <label>Password</label>
 
               <input
                 type="password"
                 value={businessPassword}
                 onChange={(event) =>
-                  setBusinessPassword(
-                    event.target.value
-                  )
+                  setBusinessPassword(event.target.value)
                 }
                 required
                 minLength={6}
                 placeholder="Minimum 6 characters"
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                className="admin-input"
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="admin-submit-wrap">
               <button
                 type="submit"
                 disabled={creatingAdmin}
-                className="w-full rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                className="admin-button"
               >
                 {creatingAdmin
                   ? "Creating..."
@@ -409,49 +657,138 @@ export default function AdminPage() {
           </form>
 
           {adminMessage && (
-            <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-green-700">
+            <div className="admin-alert admin-alert-success">
               {adminMessage}
             </div>
           )}
 
           {adminError && (
-            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <div className="admin-alert admin-alert-error">
               {adminError}
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold">
-              Orders
-            </h2>
-
-            <p className="mt-2 text-sm text-gray-500">
-              View and manage customer orders.
+        {/* PLATFORM MANAGEMENT */}
+        <section className="admin-management">
+          <div className="admin-management-header">
+            <p className="admin-section-label">
+              Platform Management
             </p>
+
+            <h2 className="admin-section-title">
+              Manage your platform
+            </h2>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold">
-              Products
-            </h2>
+          <div className="admin-management-grid">
 
-            <p className="mt-2 text-sm text-gray-500">
-              Manage products, prices and availability.
-            </p>
+            {/* ORDERS */}
+            <div className="admin-management-card">
+              <div className="admin-management-icon">
+                📦
+              </div>
+
+              <h2 className="admin-management-title">
+                Orders
+              </h2>
+
+              <p className="admin-management-description">
+                View and manage customer orders.
+              </p>
+
+              <div className="admin-management-footer">
+                <span>
+                  Admin Orders
+                </span>
+
+                <span>
+                  →
+                </span>
+              </div>
+            </div>
+
+            {/* PRODUCTS */}
+            <div className="admin-management-card">
+              <div className="admin-management-icon">
+                🛍️
+              </div>
+
+              <h2 className="admin-management-title">
+                Products
+              </h2>
+
+              <p className="admin-management-description">
+                Manage products, prices and availability.
+              </p>
+
+              <div className="admin-management-footer">
+                <span>
+                  Business Admin
+                </span>
+
+                <span>
+                  →
+                </span>
+              </div>
+            </div>
+
+            {/* OUTLETS */}
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                  "/admin/outlets";
+              }}
+              className="admin-management-card"
+            >
+              <div className="admin-management-icon">
+                📍
+              </div>
+
+              <span className="admin-count">
+                {outlets.length}
+              </span>
+
+              <h2 className="admin-management-title">
+                Outlets
+              </h2>
+
+              <p className="admin-management-description">
+                View outlets, locations and outlet
+                login accounts.
+              </p>
+
+              {outletsError && (
+                <p
+                  style={{
+                    marginTop: 10,
+                    color: "#dc2626",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {outletsError}
+                </p>
+              )}
+
+              <div className="admin-management-footer">
+                <span>
+                  View Outlets
+                </span>
+
+                <span>
+                  →
+                </span>
+              </div>
+            </button>
           </div>
+        </section>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold">
-              Outlets
-            </h2>
-
-            <p className="mt-2 text-sm text-gray-500">
-              Manage outlets and outlet settings.
-            </p>
-          </div>
-        </div>
+        {/* FOOTER */}
+        <footer className="admin-footer">
+          Super Admin Panel
+        </footer>
       </div>
     </main>
   );

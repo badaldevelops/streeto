@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+
 
 const allowedStatuses = [
   "ASSIGNED",
@@ -26,7 +27,11 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as {
+      orderId?: string;
+      status?: string;
+    };
+
     const { orderId, status } = body;
 
     if (!orderId) {
@@ -36,7 +41,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (!allowedStatuses.includes(status)) {
+    if (!status || !allowedStatuses.includes(status)) {
       return NextResponse.json(
         { error: "Invalid delivery status." },
         { status: 400 }
@@ -87,8 +92,8 @@ export async function PATCH(request: Request) {
         id: orderId,
       },
       data: {
-        status,
-      },
+  status: status as any,
+},
     });
 
     return NextResponse.json({

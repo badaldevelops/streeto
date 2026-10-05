@@ -1,11 +1,9 @@
 import { cookies } from "next/headers";
-
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/session";
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
-
   const sessionToken = cookieStore.get("session")?.value;
 
   if (!sessionToken) {

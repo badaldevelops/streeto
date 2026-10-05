@@ -74,7 +74,7 @@ export default function BusinessAdminOutletsPage() {
         }
       );
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!response.ok) {
         setError(data.error || "Unable to load outlets.");
@@ -100,7 +100,7 @@ export default function BusinessAdminOutletsPage() {
           cache: "no-store",
         });
 
-        const data = await response.json();
+       const data: any = await response.json();
 
         if (!response.ok || !data.authenticated) {
           router.push("/login");
@@ -213,7 +213,7 @@ export default function BusinessAdminOutletsPage() {
 }),
         });
 
-        const data = await response.json();
+       const data: any = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || "Unable to update location.");
@@ -351,7 +351,7 @@ export default function BusinessAdminOutletsPage() {
         }
       );
 
-      const data = await response.json();
+     const data: any = await response.json();
 
       if (!response.ok) {
         setError(
@@ -404,7 +404,7 @@ export default function BusinessAdminOutletsPage() {
         }
       );
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!response.ok) {
         setError(
