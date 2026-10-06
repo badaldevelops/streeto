@@ -193,6 +193,15 @@ if (user?.role === "SUPER_ADMIN") {
           <div className="space-y-12">
             {activeOutlets.map((outlet, outletIndex) => (
               <section key={outlet.id}>
+                {outlet.photoUrl && (
+                  <div className="mb-5 h-48 overflow-hidden rounded-[28px] border border-orange-100 bg-orange-50 shadow-sm">
+                    <img
+                      src={outlet.photoUrl}
+                      alt={`${outlet.name} outlet`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
                 {/* OUTLET HEADER */}
                 <div className="relative mb-6 overflow-hidden rounded-[28px] border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
                   <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-orange-100/60 blur-2xl" />
