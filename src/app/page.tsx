@@ -44,6 +44,7 @@ export default async function Home() {
           id: true,
           name: true,
           address: true,
+          photoUrl: true,
           deliveryRadiusKm: true,
           deliveryCharge: true,
         },
@@ -261,6 +262,13 @@ export default async function Home() {
                         key={outlet.id}
                         className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 transition group-hover:border-orange-100"
                       >
+                        {outlet.photoUrl && (
+                          <img
+                            src={outlet.photoUrl}
+                            alt={`${outlet.name} outlet`}
+                            className="mb-3 h-36 w-full rounded-xl object-cover"
+                          />
+                        )}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-extrabold text-gray-900">
