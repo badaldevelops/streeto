@@ -136,7 +136,12 @@ export default function AdminPage() {
               companies?: Company[];
             };
 
-          setCompanies(companiesData.companies || []);
+          const loadedCompanies = companiesData.companies || [];
+          setCompanies(loadedCompanies);
+
+          if (loadedCompanies.length === 1) {
+            setSelectedCompanyId(loadedCompanies[0].id);
+          }
         }
 
         if (outletsResponse.ok) {
@@ -261,7 +266,10 @@ export default function AdminPage() {
             email: businessEmail,
             phone: businessPhone,
             password: businessPassword,
-            companyId: selectedCompanyId,
+            companyId:
+              companies.length === 1
+                ? companies[0].id
+                : selectedCompanyId,
           }),
         }
       );
@@ -553,6 +561,11 @@ export default function AdminPage() {
             existing business.
           </p>
 
+          {companies.length === 0 ? (
+            <p className="admin-section-description">
+              Create a business first to add its Business Admin.
+            </p>
+          ) : (
           <form
             onSubmit={handleCreateBusinessAdmin}
             className="admin-form admin-form-admin"
@@ -572,31 +585,38 @@ export default function AdminPage() {
               />
             </div>
 
-            <div className="admin-field">
-              <label>Business</label>
+            {companies.length === 1 ? (
+              <div className="admin-field">
+                <label>Business</label>
+                <p className="admin-section-description">
+                  {companies[0].name} (assigned automatically)
+                </p>
+              </div>
+            ) : (
+              <div className="admin-field">
+                <label>Business</label>
 
-              <select
-                value={selectedCompanyId}
-                onChange={(event) =>
-                  setSelectedCompanyId(event.target.value)
-                }
-                required
-                className="admin-select"
-              >
-                <option value="">
-                  Select business
-                </option>
+                <select
+                  value={selectedCompanyId}
+                  onChange={(event) =>
+                    setSelectedCompanyId(event.target.value)
+                  }
+                  required
+                  className="admin-select"
+                >
+                  <option value="">Choose a business</option>
 
-                {companies.map((company) => (
-                  <option
-                    key={company.id}
-                    value={company.id}
-                  >
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  {companies.map((company) => (
+                    <option
+                      key={company.id}
+                      value={company.id}
+                    >
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="admin-field">
               <label>Email</label>
@@ -655,6 +675,7 @@ export default function AdminPage() {
               </button>
             </div>
           </form>
+          )}
 
           {adminMessage && (
             <div className="admin-alert admin-alert-success">
