@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import GoogleLocationPicker from "@/app/components/GoogleLocationPicker";
 
@@ -61,6 +61,7 @@ export default function BusinessAdminOutletsPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const createOutletButtonRef = useRef<HTMLButtonElement | null>(null);
 
   async function loadOutlets() {
     try {
@@ -496,15 +497,15 @@ export default function BusinessAdminOutletsPage() {
         {!loading && !error && (
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {showLocationPicker && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-    <div className="w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+  <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4">
+    <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
       <div className="flex items-center justify-between border-b border-orange-100 px-5 py-4">
         <div>
           <h2 className="text-lg font-extrabold text-slate-900">
             📍 Select Outlet Location
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Map par location select karo ya marker ko drag karo.
+            Select a location on the map or drag the marker.
           </p>
         </div>
 
@@ -530,7 +531,15 @@ export default function BusinessAdminOutletsPage() {
         <div className="mt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => setShowLocationPicker(false)}
+            onClick={() => {
+              setShowLocationPicker(false);
+              window.setTimeout(() => {
+                createOutletButtonRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+              }, 100);
+            }}
             className="rounded-xl bg-orange-500 px-6 py-3 text-sm font-extrabold text-white hover:bg-orange-600"
           >
             ✓ Use This Location
@@ -813,7 +822,7 @@ export default function BusinessAdminOutletsPage() {
         </p>
 
         <p className="mt-1 text-xs font-medium text-orange-700">
-          Google Map se outlet ki exact location select karo.
+          Choose the exact outlet location on Google Maps.
         </p>
 
         {form.latitude && form.longitude ? (
@@ -822,7 +831,7 @@ export default function BusinessAdminOutletsPage() {
           </p>
         ) : (
           <p className="mt-2 text-xs font-semibold text-slate-500">
-            Location abhi select nahi ki gayi.
+            Location has not been selected yet.
           </p>
         )}
       </div>
@@ -870,6 +879,7 @@ export default function BusinessAdminOutletsPage() {
                 </button>
 
                 <button
+                  ref={createOutletButtonRef}
                   type="submit"
                   disabled={saving}
                   className="rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
