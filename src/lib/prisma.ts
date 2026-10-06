@@ -1,26 +1,27 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { PrismaD1 } from "@prisma/adapter-d1";
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import { PrismaClient } from "../generated/prisma/client";
 
-function createPrisma() {
-  const { env } = getCloudflareContext();
+const databaseUrl = process.env.DATABASE_URL;
 
-  const adapter = new PrismaD1(
-    (env as Cloudflare.Env).streeto_db
-  );
-
-  return new PrismaClient({ adapter });
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not configured.");
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, property) {
-    const client = createPrisma();
-    const value = client[property as keyof PrismaClient];
-
-    if (typeof value === "function") {
-      return value.bind(client);
-    }
-
-    return value;
-  },
+const adapter = new PrismaLibSQL({
+  url: databaseUrl,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
 });
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
