@@ -138,10 +138,11 @@ export default function AdminPage() {
 
           const loadedCompanies = companiesData.companies || [];
           setCompanies(loadedCompanies);
-
-          if (loadedCompanies.length === 1) {
-            setSelectedCompanyId(loadedCompanies[0].id);
-          }
+          setSelectedCompanyId(
+            [...loadedCompanies].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            )[0]?.id || ""
+          );
         }
 
         if (outletsResponse.ok) {
@@ -249,9 +250,23 @@ export default function AdminPage() {
   ) {
     event.preventDefault();
 
-    setCreatingAdmin(true);
     setAdminMessage("");
     setAdminError("");
+
+    const companyId =
+      selectedCompanyId ||
+      [...companies].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )[0]?.id;
+
+    if (!companyId) {
+      setAdminError(
+        "Create a business first to add its Business Admin."
+      );
+      return;
+    }
+
+    setCreatingAdmin(true);
 
     try {
       const response = await fetch(
@@ -266,10 +281,7 @@ export default function AdminPage() {
             email: businessEmail,
             phone: businessPhone,
             password: businessPassword,
-            companyId:
-              companies.length === 1
-                ? companies[0].id
-                : selectedCompanyId,
+            companyId,
           }),
         }
       );
@@ -561,11 +573,6 @@ export default function AdminPage() {
             existing business.
           </p>
 
-          {companies.length === 0 ? (
-            <p className="admin-section-description">
-              Create a business first to add its Business Admin.
-            </p>
-          ) : (
           <form
             onSubmit={handleCreateBusinessAdmin}
             className="admin-form admin-form-admin"
@@ -585,37 +592,10 @@ export default function AdminPage() {
               />
             </div>
 
-            {companies.length === 1 ? (
-              <div className="admin-field">
-                <label>Business</label>
-                <p className="admin-section-description">
-                  {companies[0].name} (assigned automatically)
-                </p>
-              </div>
-            ) : (
-              <div className="admin-field">
-                <label>Business</label>
-
-                <select
-                  value={selectedCompanyId}
-                  onChange={(event) =>
-                    setSelectedCompanyId(event.target.value)
-                  }
-                  required
-                  className="admin-select"
-                >
-                  <option value="">Choose a business</option>
-
-                  {companies.map((company) => (
-                    <option
-                      key={company.id}
-                      value={company.id}
-                    >
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {companies.length > 0 && (
+              <p className="admin-section-description">
+                This account will be linked to {[...companies].sort((a, b) => a.name.localeCompare(b.name))[0].name}.
+              </p>
             )}
 
             <div className="admin-field">
@@ -675,7 +655,6 @@ export default function AdminPage() {
               </button>
             </div>
           </form>
-          )}
 
           {adminMessage && (
             <div className="admin-alert admin-alert-success">
