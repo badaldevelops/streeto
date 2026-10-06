@@ -36,14 +36,6 @@ export async function POST(request: Request) {
   user.passwordHash
 );
 
-console.log("LOGIN DEBUG:", {
-  email: user.email,
-  role: user.role,
-  hash: user.passwordHash,
-  passwordLength: password.length,
-  passwordMatch,
-});
-
     if (!passwordMatch) {
       return NextResponse.json(
         { error: "Invalid email or password." },
