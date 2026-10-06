@@ -1,8 +1,9 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
-  runtime  = "cloudflare"
+  runtime  = "nodejs"
 }
+
 datasource db {
   provider = "sqlite"
 }
@@ -58,26 +59,26 @@ model Company {
 }
 
 model Outlet {
-  id              String   @id @default(cuid())
-  name            String
-  address         String?  
-  phone           String?
-  latitude        Float?
-  longitude       Float?
-  deliveryRadiusKm Float    @default(5)
-    businessType    String   @default("FIXED_SHOP")
+  id                String   @id @default(cuid())
+  name              String
+  address           String?
+  phone             String?
+  latitude          Float?
+  longitude         Float?
+  deliveryRadiusKm  Float    @default(5)
+  businessType      String   @default("FIXED_SHOP")
   locationUpdatedAt DateTime?
-  deliveryCharge  Float     @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  deliveryCharge    Float    @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  companyId       String
-  company         Company  @relation(fields: [companyId], references: [id])
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id])
 
-  users           User[]
-  outletProducts  OutletProduct[]
-  orders          Order[]
+  users             User[]
+  outletProducts    OutletProduct[]
+  orders            Order[]
 }
 
 model User {
@@ -97,23 +98,23 @@ model User {
   outletId     String?
   outlet       Outlet?  @relation(fields: [outletId], references: [id])
 
-  orders       Order[]  @relation("CustomerOrders")
+  orders       Order[]    @relation("CustomerOrders")
   deliveries   Delivery[] @relation("DeliveryStaff")
 
   addresses Address[]
 }
 
 model Product {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  imageUrl     String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  imageUrl       String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  companyId    String
-  company      Company  @relation(fields: [companyId], references: [id])
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
 
   outletProducts OutletProduct[]
   orderItems     OrderItem[]
@@ -136,38 +137,38 @@ model OutletProduct {
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber    String        @unique
-  type            OrderType
-  status          OrderStatus   @default(PLACED)
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique
+  type              OrderType
+  status            OrderStatus @default(PLACED)
 
-  subtotal        Float
-  deliveryCharge Float         @default(0)
-  total           Float
+  subtotal          Float
+  deliveryCharge    Float       @default(0)
+  total             Float
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
-  customerId      String?
-  customer        User?         @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerId        String?
+  customer          User?       @relation("CustomerOrders", fields: [customerId], references: [id])
 
-  outletId        String
-  outlet          Outlet        @relation(fields: [outletId], references: [id])
+  outletId          String
+  outlet            Outlet      @relation(fields: [outletId], references: [id])
 
-  deliveryAddress String?
-  customerPhone   String?
-  customerName    String?
+  deliveryAddress   String?
+  customerPhone     String?
+  customerName      String?
   customerLatitude  Float?
-customerLongitude Float?
-businessType String @default("FIXED_SHOP")
-locationUpdatedAt DateTime?
+  customerLongitude Float?
+  businessType      String      @default("FIXED_SHOP")
+  locationUpdatedAt DateTime?
 
-    queueNumber     Int?
-  queuePosition   Int?
+  queueNumber       Int?
+  queuePosition     Int?
 
-  items           OrderItem[]
-  payment         Payment?
-  delivery        Delivery?
+  items             OrderItem[]
+  payment           Payment?
+  delivery          Delivery?
 }
 
 model OrderItem {
@@ -184,48 +185,47 @@ model OrderItem {
 }
 
 model Payment {
-  id          String        @id @default(cuid())
-  amount      Float
-  method      PaymentMethod
-  status      PaymentStatus @default(PENDING)
+  id            String        @id @default(cuid())
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
   transactionId String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  orderId     String        @unique
-  order       Order         @relation(fields: [orderId], references: [id])
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
 }
 
 model Delivery {
-  id             String   @id @default(cuid())
-  status         String
-  assignedAt     DateTime?
-  pickedUpAt     DateTime?
-  deliveredAt    DateTime?
+  id              String   @id @default(cuid())
+  status          String
+  assignedAt      DateTime?
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
 
-  orderId        String   @unique
-  order         Order    @relation(fields: [orderId], references: [id])
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id])
 
   deliveryStaffId String?
-  deliveryStaff   User?  @relation("DeliveryStaff", fields: [deliveryStaffId], references: [id])
+  deliveryStaff   User?    @relation("DeliveryStaff", fields: [deliveryStaffId], references: [id])
 }
 
 model Address {
-  id                String   @id @default(cuid())
-  customerId        String
-  label             String
-  fullName          String
-  phone             String
-  addressLine       String
-  landmark          String?
-  latitude          Float?
-  longitude         Float?
-  isDefault         Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String   @id @default(cuid())
+  customerId   String
+  label        String
+  fullName     String
+  phone        String
+  addressLine  String
+  landmark     String?
+  latitude     Float?
+  longitude    Float?
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  customer          User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer     User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
-    
 }
