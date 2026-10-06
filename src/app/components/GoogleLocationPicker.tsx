@@ -86,7 +86,7 @@ export default function GoogleLocationPicker({
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: true,
-        gestureHandling: "greedy",
+        gestureHandling: "cooperative",
         mapId: "DEMO_MAP_ID",
       });
 
