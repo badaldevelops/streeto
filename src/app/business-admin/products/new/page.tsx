@@ -11,9 +11,6 @@ export default function NewProductPage() {
 
 const [name, setName] = useState("");
 const [description, setDescription] = useState("");
-const [imageUrl, setImageUrl] = useState("");
-const [selectedImage, setSelectedImage] =
-  useState<File | null>(null);
 
 const [outlets, setOutlets] = useState<
   { id: string; name: string }[]
@@ -78,39 +75,6 @@ async function createProduct() {
     setSaving(true);
     setError("");
 
-    let uploadedImageUrl = "";
-
-    if (selectedImage) {
-      const formData = new FormData();
-
-      formData.append(
-        "file",
-        selectedImage
-      );
-
-      const uploadResponse = await fetch(
-        "/api/business-admin/upload-image",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const uploadData =
-        await uploadResponse.json();
-
-      if (!uploadResponse.ok) {
-        setError(
-          uploadData.error ||
-            "Unable to upload image."
-        );
-        return;
-      }
-
-      uploadedImageUrl =
-        uploadData.imageUrl;
-    }
-
     if (!outletId) {
   setError("Please select an outlet.");
   return;
@@ -130,7 +94,6 @@ if (!price || Number(price) < 0) {
        body: JSON.stringify({
   name,
   description,
-  imageUrl: uploadedImageUrl || null,
   outletId,
   price: Number(price),
   isAvailable,
@@ -306,70 +269,6 @@ if (!price || Number(price) < 0) {
               resize: "vertical",
             }}
           />
-<div
-  style={{
-    marginTop: "20px",
-  }}
->
-  <label
-    htmlFor="productImage"
-    style={{
-      display: "block",
-      fontSize: "14px",
-      fontWeight: 700,
-      color: "#374151",
-      marginBottom: "8px",
-    }}
-  >
-    Product Image
-  </label>
-
-  <input
-    id="productImage"
-    type="file"
-    accept="image/jpeg,image/png,image/webp"
-    onChange={(event) => {
-      const file =
-        event.target.files?.[0];
-
-      if (file) {
-        setSelectedImage(file);
-      }
-    }}
-    style={{
-      width: "100%",
-      boxSizing: "border-box",
-      border: "1px solid #d1d5db",
-      borderRadius: "10px",
-      padding: "12px",
-      background: "#ffffff",
-      fontSize: "14px",
-    }}
-  />
-
-  <p
-    style={{
-      marginTop: "6px",
-      fontSize: "12px",
-      color: "#6b7280",
-    }}
-  >
-    JPG, PNG or WEBP. Maximum size: 4 MB.
-  </p>
-
-  {selectedImage && (
-    <p
-      style={{
-        marginTop: "8px",
-        fontSize: "13px",
-        color: "#166534",
-        fontWeight: 600,
-      }}
-    >
-      Selected: {selectedImage.name}
-    </p>
-  )}
-</div>
 
 <div
   style={{

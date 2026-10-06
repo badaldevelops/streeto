@@ -23,7 +23,6 @@ type Product = {
   id: string;
   name: string;
   description: string | null;
-  imageUrl: string | null;
   isActive: boolean;
   outletProducts: ProductOutlet[];
 };
@@ -42,11 +41,6 @@ export default function EditProductPage() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-
-  const [selectedImage, setSelectedImage] =
-    useState<File | null>(null);
-
   const [outletId, setOutletId] = useState("");
   const [price, setPrice] = useState("");
   const [isAvailable, setIsAvailable] =
@@ -137,9 +131,6 @@ export default function EditProductPage() {
         setDescription(
           foundProduct.description || ""
         );
-        setImageUrl(
-          foundProduct.imageUrl || ""
-        );
         setIsActive(
           foundProduct.isActive
         );
@@ -216,40 +207,6 @@ export default function EditProductPage() {
         return;
       }
 
-      let finalImageUrl = imageUrl;
-
-      if (selectedImage) {
-        const formData = new FormData();
-
-        formData.append(
-          "file",
-          selectedImage
-        );
-
-        const uploadResponse =
-          await fetch(
-            "/api/business-admin/upload-image",
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
-
-        const uploadData =
-          await uploadResponse.json();
-
-        if (!uploadResponse.ok) {
-          setError(
-            uploadData.error ||
-              "Unable to upload image."
-          );
-          return;
-        }
-
-        finalImageUrl =
-          uploadData.imageUrl;
-      }
-
       const response = await fetch(
         "/api/business-admin/products",
         {
@@ -263,8 +220,6 @@ export default function EditProductPage() {
             name: name.trim(),
             description:
               description.trim(),
-            imageUrl:
-              finalImageUrl || null,
             isActive,
             outletId,
             price: Number(price),
@@ -406,27 +361,6 @@ export default function EditProductPage() {
             </div>
           )}
 
-          {imageUrl && (
-            <div
-              style={{
-                marginBottom: "22px",
-              }}
-            >
-              <img
-                src={imageUrl}
-                alt={name}
-                style={{
-                  width: "100%",
-                  maxHeight: "260px",
-                  objectFit: "contain",
-                  background: "#f3f4f6",
-                  borderRadius: "12px",
-                  display: "block",
-                }}
-              />
-            </div>
-          )}
-
           <div
             style={{
               marginBottom: "20px",
@@ -501,51 +435,6 @@ export default function EditProductPage() {
                 resize: "vertical",
               }}
             />
-          </div>
-
-          <div
-            style={{
-              marginBottom: "20px",
-            }}
-          >
-            <label
-              htmlFor="productImage"
-              style={{
-                display: "block",
-                fontWeight: 700,
-                marginBottom: "8px",
-                color: "#111827",
-              }}
-            >
-              Change Product Image
-            </label>
-
-            <input
-              id="productImage"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                const file =
-                  event.target.files?.[0];
-
-                if (file) {
-                  setSelectedImage(file);
-                }
-              }}
-              style={{
-                width: "100%",
-              }}
-            />
-
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#6b7280",
-                marginTop: "6px",
-              }}
-            >
-              JPG, PNG or WEBP. Maximum 4 MB.
-            </p>
           </div>
 
           <div
