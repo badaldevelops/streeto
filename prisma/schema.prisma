@@ -23,6 +23,7 @@ model Outlet {
   name              String
   address           String?
   phone             String?
+  photoUrl          String?
   latitude          Float?
   longitude         Float?
   deliveryRadiusKm  Float           @default(5)
