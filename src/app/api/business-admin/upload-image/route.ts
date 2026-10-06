@@ -1,9 +1,15 @@
-﻿import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
+import { put } from "@vercel/blob";
+import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
 
 export async function POST(request: Request) {
   try {
@@ -16,15 +22,21 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.role !== "BUSINESS_ADMIN") {
+    if (user.role !== "BUSINESS_ADMIN" || !user.companyId) {
       return NextResponse.json(
         { error: "Access denied." },
         { status: 403 }
       );
     }
 
-    const formData = await request.formData();
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        { error: "Product image storage is not configured." },
+        { status: 503 }
+      );
+    }
 
+    const formData = await request.formData();
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
@@ -34,86 +46,40 @@ export async function POST(request: Request) {
       );
     }
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
+    const extension = ALLOWED_IMAGE_TYPES.get(file.type);
 
-    if (!allowedTypes.includes(file.type)) {
+    if (!extension) {
       return NextResponse.json(
-        {
-          error:
-            "Only JPG, PNG and WEBP images are allowed.",
-        },
+        { error: "Only JPG, PNG, and WEBP images are allowed." },
         { status: 400 }
       );
     }
 
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
+    if (file.size === 0 || file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        {
-          error:
-            "Image size must be 5 MB or less.",
-        },
+        { error: "Image size must be 4 MB or less." },
         { status: 400 }
       );
     }
 
-    const extensionMap: Record<string, string> = {
-      "image/jpeg": ".jpg",
-      "image/png": ".png",
-      "image/webp": ".webp",
-    };
-
-    const extension =
-      extensionMap[file.type];
-
-    const fileName =
-      `${randomUUID()}${extension}`;
-
-    const uploadDirectory = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "products"
+    const blob = await put(
+      `products/${randomUUID()}.${extension}`,
+      file,
+      {
+        access: "public",
+        contentType: file.type,
+      }
     );
-
-    await mkdir(uploadDirectory, {
-      recursive: true,
-    });
-
-    const filePath = path.join(
-      uploadDirectory,
-      fileName
-    );
-
-    const bytes = await file.arrayBuffer();
-
-    await writeFile(
-      filePath,
-      Buffer.from(bytes)
-    );
-
-    const imageUrl =
-      `/uploads/products/${fileName}`;
 
     return NextResponse.json({
       success: true,
-      imageUrl,
+      imageUrl: blob.url,
     });
   } catch (error) {
-    console.error(
-      "Product image upload error:",
-      error
-    );
+    console.error("Business Admin product image upload error:", error);
 
     return NextResponse.json(
-      {
-        error: "Unable to upload image.",
-      },
+      { error: "Unable to upload product image. Please try again." },
       { status: 500 }
     );
   }

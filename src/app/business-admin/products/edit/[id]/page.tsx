@@ -544,7 +544,7 @@ export default function EditProductPage() {
                 marginTop: "6px",
               }}
             >
-              JPG, PNG or WEBP. Maximum 5 MB.
+              JPG, PNG or WEBP. Maximum 4 MB.
             </p>
           </div>
 

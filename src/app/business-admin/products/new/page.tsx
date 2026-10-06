@@ -354,7 +354,7 @@ if (!price || Number(price) < 0) {
       color: "#6b7280",
     }}
   >
-    JPG, PNG or WEBP. Maximum size: 5 MB.
+    JPG, PNG or WEBP. Maximum size: 4 MB.
   </p>
 
   {selectedImage && (
