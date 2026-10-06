@@ -528,7 +528,7 @@ export default function BusinessAdminOutletsPage() {
           }}
         />
 
-        <div className="mt-4 flex justify-end">
+        <div className="sticky bottom-0 mt-4 flex justify-end bg-white py-3">
           <button
             type="button"
             onClick={() => {
@@ -621,8 +621,8 @@ export default function BusinessAdminOutletsPage() {
 
         {/* Add / Edit Form */}
         {showForm && (
-          <div className="mb-8 overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-xl">
-            <div className="bg-gradient-to-r from-orange-100 to-red-50 px-6 py-5 sm:px-8">
+          <div className="mb-8 rounded-3xl border border-orange-100 bg-white shadow-xl">
+            <div className="rounded-t-3xl bg-gradient-to-r from-orange-100 to-red-50 px-6 py-5 sm:px-8">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3">
@@ -868,7 +868,7 @@ export default function BusinessAdminOutletsPage() {
               </div>
 
               {/* Actions */}
-              <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-7 flex flex-col-reverse gap-3 border-t border-gray-100 bg-white/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:flex-row sm:justify-end sm:px-8">
                 <button
                   type="button"
                   onClick={closeForm}
