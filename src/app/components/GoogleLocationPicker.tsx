@@ -274,7 +274,7 @@ export default function GoogleLocationPicker({
           </h3>
 
           <p className="mt-1 text-xs font-medium text-slate-500">
-            Map par tap karo ya marker ko drag karo.
+            Tap the map or drag the marker.
           </p>
         </div>
 
@@ -336,8 +336,8 @@ export default function GoogleLocationPicker({
 
       {/* Helper */}
       <p className="mt-2 text-[11px] font-medium text-slate-400">
-        💡 Current location ke liye button dabao, ya map
-        par directly exact location select karo.
+        💡 Use the button to find your current location, or
+        select a location directly on the map.
       </p>
     </div>
   );
