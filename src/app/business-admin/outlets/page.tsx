@@ -11,6 +11,7 @@ type Outlet = {
 locationUpdatedAt: string | null;
   address: string | null;
   phone: string | null;
+  photoUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   deliveryRadiusKm: number;
@@ -57,6 +58,8 @@ export default function BusinessAdminOutletsPage() {
     useState<Outlet | null>(null);
 
   const [form, setForm] = useState<OutletForm>(emptyForm);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
@@ -132,6 +135,8 @@ export default function BusinessAdminOutletsPage() {
     setForm(emptyForm);
     setError("");
     setSuccess("");
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setShowForm(true);
   }
 
@@ -157,6 +162,8 @@ export default function BusinessAdminOutletsPage() {
 
     setError("");
     setSuccess("");
+    setPhotoFile(null);
+    setPhotoPreview(outlet.photoUrl || null);
     setShowForm(true);
   }
 
@@ -168,7 +175,45 @@ export default function BusinessAdminOutletsPage() {
     setShowForm(false);
     setEditingOutlet(null);
     setForm(emptyForm);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setError("");
+  }
+
+  function handlePhotoChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0] || null;
+    setError("");
+
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview(editingOutlet?.photoUrl || null);
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      event.target.value = "";
+      setPhotoFile(null);
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      event.target.value = "";
+      setPhotoFile(null);
+      setError("Choose an image smaller than 4 MB.");
+      return;
+    }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setPhotoPreview(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   function updateForm(
@@ -364,7 +409,41 @@ export default function BusinessAdminOutletsPage() {
         return;
       }
 
-      setSuccess(
+      const savedOutletId =
+        typeof data.outlet?.id === "string"
+          ? data.outlet.id
+          : editingOutlet?.id;
+
+      if (photoFile && savedOutletId) {
+        const photoData = new FormData();
+        photoData.set("outletId", savedOutletId);
+        photoData.set("file", photoFile);
+
+        const photoResponse = await fetch(
+          "/api/business-admin/outlets/photo",
+          {
+            method: "POST",
+            body: photoData,
+          }
+        );
+        const photoResult: any = await photoResponse.json();
+
+        if (!photoResponse.ok) {
+          setShowForm(false);
+          setEditingOutlet(null);
+          setForm(emptyForm);
+          setPhotoFile(null);
+          setPhotoPreview(null);
+          await loadOutlets();
+          setError(
+            photoResult.error ||
+              "Outlet was saved, but its photo could not be uploaded. Edit the outlet to try again."
+          );
+          return;
+        }
+      }
+
+            setSuccess(
         isEditing
           ? "Outlet updated successfully."
           : "Outlet created successfully."
@@ -373,6 +452,8 @@ export default function BusinessAdminOutletsPage() {
       setShowForm(false);
       setEditingOutlet(null);
       setForm(emptyForm);
+      setPhotoFile(null);
+      setPhotoPreview(null);
 
       await loadOutlets();
     } catch (error) {
@@ -766,6 +847,30 @@ export default function BusinessAdminOutletsPage() {
                       className="input-style resize-y"
                     />
                   </Field>
+                </div>
+
+                {/* Outlet Photo */}
+                <div className="sm:col-span-2">
+                  <Field label="Outlet Photo" icon="📷">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoChange}
+                      className="input-style"
+                    />
+                  </Field>
+                  <p className="mt-2 text-xs font-medium text-gray-500">
+                    Optional. JPEG, PNG, or WebP; maximum 4 MB.
+                  </p>
+                  {photoPreview && (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-orange-100">
+                      <img
+                        src={photoPreview}
+                        alt="Outlet photo preview"
+                        className="h-48 w-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Radius */}
