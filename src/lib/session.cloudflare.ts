@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
+import { env } from "cloudflare:workers";
 
-const secret = process.env.SESSION_SECRET;
+const secret = env.SESSION_SECRET;
 
 if (!secret) {
   throw new Error("SESSION_SECRET is not configured.");
