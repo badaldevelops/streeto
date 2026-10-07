@@ -235,6 +235,13 @@ if (
     const outlet =
       outletProducts[0].outlet;
 
+    if (!outlet.company.isOpen) {
+      return NextResponse.json(
+        { error: "This store is closed and is not accepting orders right now." },
+        { status: 409 }
+      );
+    }
+
     /*
      * All products must also be available.
      */

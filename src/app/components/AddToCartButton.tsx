@@ -10,6 +10,7 @@ type Props = {
   companyName: string;
   outletId: string;
   outletName: string;
+  disabled?: boolean;
 };
 
 export default function AddToCartButton({
@@ -20,6 +21,7 @@ export default function AddToCartButton({
   companyName,
   outletId,
   outletName,
+  disabled = false,
 }: Props) {
   const {
     items,
@@ -33,6 +35,18 @@ export default function AddToCartButton({
   );
 
   const quantity = item?.quantity ?? 0;
+
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="mt-5 w-full cursor-not-allowed rounded-xl bg-gray-200 px-4 py-3 font-semibold text-gray-500"
+      >
+        Store Closed
+      </button>
+    );
+  }
 
   if (quantity === 0) {
     return (

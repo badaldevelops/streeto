@@ -15,6 +15,7 @@ type User = {
 type Company = {
   id: string;
   name: string;
+  isOpen: boolean;
 };
 
 type Stats = {
@@ -33,6 +34,7 @@ export default function BusinessAdminPage() {
 
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [updatingStoreStatus, setUpdatingStoreStatus] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -119,6 +121,30 @@ export default function BusinessAdminPage() {
       console.error(error);
     } finally {
       router.replace("/login");
+    }
+  }
+
+  async function toggleStoreStatus() {
+    if (!company || updatingStoreStatus) return;
+    setUpdatingStoreStatus(true);
+    setError("");
+    try {
+      const response = await fetch("/api/business-admin/store-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isOpen: !company.isOpen }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Unable to update store status.");
+        return;
+      }
+      setCompany(data.company);
+    } catch (error) {
+      console.error(error);
+      setError("Unable to update store status.");
+    } finally {
+      setUpdatingStoreStatus(false);
     }
   }
 
@@ -262,6 +288,29 @@ products and outlets from one place.
 
           </div>
         </section>
+
+        {/* STORE AVAILABILITY */}
+        {company && (
+          <section className="mt-5 flex flex-col gap-4 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:rounded-[24px] sm:p-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-orange-500">Customer ordering</p>
+              <h2 className="mt-1 text-xl font-black text-gray-900">
+                Store is {company.isOpen ? "Open" : "Closed"}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {company.isOpen ? "Customers can browse and place orders." : "Customers can view your menu, but cannot place orders."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleStoreStatus}
+              disabled={updatingStoreStatus}
+              className={`min-h-12 rounded-xl px-6 py-3 text-sm font-extrabold text-white shadow-sm transition disabled:opacity-60 ${company.isOpen ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+            >
+              {updatingStoreStatus ? "Updating…" : company.isOpen ? "Close Store" : "Open Store"}
+            </button>
+          </section>
+        )}
 
         {/* ERROR */}
         {error && (

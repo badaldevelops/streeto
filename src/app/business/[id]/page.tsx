@@ -120,7 +120,7 @@ if (user?.role === "SUPER_ADMIN") {
           <div className="relative max-w-3xl">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-300/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-orange-200 backdrop-blur sm:mb-5 sm:px-4 sm:py-2 sm:text-xs">
               <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
-              Now accepting orders
+              {business.isOpen ? "Now accepting orders" : "Store closed"}
             </div>
 
             <h2 className="text-[2rem] font-black leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
@@ -210,8 +210,8 @@ if (user?.role === "SUPER_ADMIN") {
                             {outlet.name}
                           </h3>
 
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-emerald-600">
-                            ● Open
+                          <span className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${business.isOpen ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+                            ● {business.isOpen ? "Open" : "Store Closed"}
                           </span>
                         </div>
 
@@ -363,6 +363,7 @@ if (user?.role === "SUPER_ADMIN") {
                                   companyName={business.name}
                                   outletId={outlet.id}
                                   outletName={outlet.name}
+                                  disabled={!business.isOpen}
                                 />
                               </div>
                             </div>

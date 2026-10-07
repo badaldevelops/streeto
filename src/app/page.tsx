@@ -29,24 +29,25 @@ export default async function Home() {
   }
 
   const businesses = await prisma.company.findMany({
-    where: {
+    select: {
+      id: true,
+      name: true,
+      isOpen: true,
       outlets: {
-        some: {
-          isActive: true,
-        },
-      },
-    },
-    include: {
-      outlets: {
-        where: {
-          isActive: true,
-        },
+        where: { isActive: true },
         select: {
           id: true,
           name: true,
           address: true,
           deliveryRadiusKm: true,
           deliveryCharge: true,
+        },
+      },
+    },
+    where: {
+      outlets: {
+        some: {
+          isActive: true,
         },
       },
     },
@@ -226,8 +227,8 @@ export default async function Home() {
                       : "Local Favourite"}
                   </div>
 
-                  <div className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold text-emerald-600 shadow-sm backdrop-blur sm:bottom-4 sm:right-4 sm:px-3 sm:py-1.5 sm:text-xs">
-                    ● Open
+                  <div className={`absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold shadow-sm backdrop-blur sm:bottom-4 sm:right-4 sm:px-3 sm:py-1.5 sm:text-xs ${business.isOpen ? "text-emerald-600" : "text-red-600"}`}>
+                    ● {business.isOpen ? "Open" : "Store Closed"}
                   </div>
                 </div>
 
@@ -272,8 +273,8 @@ export default async function Home() {
                             )}
                           </div>
 
-                          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-extrabold text-emerald-600">
-                            OPEN
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold ${business.isOpen ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+                            {business.isOpen ? "OPEN" : "CLOSED"}
                           </span>
                         </div>
 
