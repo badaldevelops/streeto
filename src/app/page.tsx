@@ -219,14 +219,11 @@ export default async function Home() {
                   <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-orange-200/60 blur-xl" />
                   <div className="absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-red-200/40 blur-xl" />
 
-                  <div className="absolute left-3 top-3 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-orange-600 shadow-sm backdrop-blur sm:left-5 sm:top-5 sm:px-3 sm:py-1.5 sm:text-[10px]">
+                  <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.1em] text-orange-600 shadow-sm backdrop-blur sm:left-5 sm:top-5 sm:gap-2 sm:px-3 sm:py-1.5 sm:text-[10px]">
+                    <span aria-hidden="true" className="text-sm leading-none sm:text-base">🏪</span>
                     {index === 0
                       ? "Featured Store"
                       : "Local Favourite"}
-                  </div>
-
-                  <div className="absolute inset-0 flex items-center justify-center text-5xl transition duration-500 group-hover:scale-110 sm:text-8xl">
-                    🏪
                   </div>
 
                   <div className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold text-emerald-600 shadow-sm backdrop-blur sm:bottom-4 sm:right-4 sm:px-3 sm:py-1.5 sm:text-xs">
