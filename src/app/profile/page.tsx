@@ -263,7 +263,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 text-gray-950 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <p className="text-gray-600">
             Loading your profile...
@@ -275,7 +275,7 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 text-gray-950 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             {error}
@@ -287,7 +287,7 @@ export default function ProfilePage() {
 
   if (!customer) {
     return (
-      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 text-gray-950 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-2xl border bg-white p-6 text-center">
             <h1 className="text-xl font-bold">
@@ -307,7 +307,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
+    <main className="min-h-screen bg-gray-50 px-3 py-5 text-gray-950 sm:px-5 sm:py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6">
           <a
@@ -321,7 +321,7 @@ export default function ProfilePage() {
             My Profile
           </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-700">
             Manage your customer account
           </p>
         </div>
@@ -329,7 +329,7 @@ export default function ProfilePage() {
         <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
           <div className="space-y-5">
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-medium text-gray-700">
                 Name
               </p>
 
@@ -339,7 +339,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-medium text-gray-700">
                 Phone
               </p>
 
@@ -349,7 +349,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-medium text-gray-700">
                 Email
               </p>
 
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                 Saved Addresses
               </h2>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 Save your delivery addresses for faster checkout.
               </p>
             </div>
@@ -414,7 +414,7 @@ export default function ProfilePage() {
                   onChange={(event) =>
                     setLabel(event.target.value)
                   }
-                  className="mt-1 w-full rounded-xl border px-4 py-3"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-950 placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   <option value="Home">Home</option>
                   <option value="Work">Work</option>
@@ -433,7 +433,7 @@ export default function ProfilePage() {
                     setFullName(event.target.value)
                   }
                   required
-                  className="mt-1 w-full rounded-xl border px-4 py-3"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-950 placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                   placeholder="Enter full name"
                 />
               </div>
@@ -451,7 +451,7 @@ export default function ProfilePage() {
                   required
                   maxLength={10}
                   inputMode="numeric"
-                  className="mt-1 w-full rounded-xl border px-4 py-3"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-950 placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                   placeholder="10-digit phone number"
                 />
               </div>
@@ -468,7 +468,7 @@ export default function ProfilePage() {
                   }
                   required
                   rows={3}
-                  className="mt-1 w-full rounded-xl border px-4 py-3"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-950 placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                   placeholder="House number, street, area..."
                 />
               </div>
@@ -493,7 +493,7 @@ export default function ProfilePage() {
                   Delivery Location
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-700">
                   Save your current GPS location with this address.
                 </p>
 
@@ -529,7 +529,7 @@ export default function ProfilePage() {
 
           <div className="mt-6 space-y-4">
             {addressLoading ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-700">
                 Loading saved addresses...
               </p>
             ) : addresses.length === 0 ? (
@@ -538,7 +538,7 @@ export default function ProfilePage() {
                   No saved addresses
                 </p>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-700">
                   Add an address for faster checkout.
                 </p>
               </div>
@@ -566,7 +566,7 @@ export default function ProfilePage() {
                         {address.fullName}
                       </p>
 
-                      <p className="mt-1 text-sm text-gray-600">
+                        <p className="mt-1 text-sm text-gray-700">
                         {address.phone}
                       </p>
 
@@ -575,14 +575,14 @@ export default function ProfilePage() {
                       </p>
 
                       {address.landmark && (
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-700">
                           Landmark: {address.landmark}
                         </p>
                       )}
 
                       {address.latitude !== null &&
                         address.longitude !== null && (
-                          <p className="mt-2 text-xs text-gray-400">
+                          <p className="mt-2 text-xs text-gray-600">
                             📍{" "}
                             {address.latitude.toFixed(6)},{" "}
                             {address.longitude.toFixed(6)}
