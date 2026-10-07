@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import BusinessOrderMonitor from "@/app/components/BusinessOrderMonitor";
+import BusinessPushNotifications from "@/app/components/BusinessPushNotifications";
 
 type User = {
   id: string;
@@ -311,6 +313,9 @@ products and outlets from one place.
             </button>
           </section>
         )}
+
+        <BusinessPushNotifications />
+        <BusinessOrderMonitor />
 
         {/* ERROR */}
         {error && (

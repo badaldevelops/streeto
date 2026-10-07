@@ -17,6 +17,7 @@ model Company {
   outlets   Outlet[]
   products  Product[]
   users     User[]
+  pushSubscriptions BusinessPushSubscription[]
 }
 
 model Outlet {
@@ -57,6 +58,22 @@ model User {
   orders       Order[]    @relation("CustomerOrders")
   company      Company?   @relation(fields: [companyId], references: [id])
   outlet       Outlet?    @relation(fields: [outletId], references: [id])
+  pushSubscriptions BusinessPushSubscription[]
+}
+
+model BusinessPushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String
+  companyId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([userId])
 }
 
 model Product {

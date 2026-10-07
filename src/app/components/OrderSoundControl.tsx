@@ -44,7 +44,7 @@ export default function OrderSoundControl({
     }
 
     playNewOrderSound();
-    const interval = window.setInterval(playNewOrderSound, 1600);
+    const interval = window.setInterval(playNewOrderSound, 2400);
 
     return () => window.clearInterval(interval);
   }, [active, enabled]);

@@ -36,7 +36,7 @@ export async function enableOrderSounds() {
   }
 }
 
-function playNotes(notes: number[], spacing: number, duration: number) {
+function playNotes(notes: number[], spacing: number, duration: number, volume = 0.16) {
   if (!audioContext || audioContext.state !== "running") {
     return;
   }
@@ -51,7 +51,7 @@ function playNotes(notes: number[], spacing: number, duration: number) {
     oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(frequency, noteStart);
     gain.gain.setValueAtTime(0.0001, noteStart);
-    gain.gain.exponentialRampToValueAtTime(0.16, noteStart + 0.02);
+    gain.gain.exponentialRampToValueAtTime(volume, noteStart + 0.02);
     gain.gain.exponentialRampToValueAtTime(
       0.0001,
       noteStart + duration
@@ -65,7 +65,8 @@ function playNotes(notes: number[], spacing: number, duration: number) {
 }
 
 export function playNewOrderSound() {
-  playNotes([880, 660], 0.18, 0.15);
+  // Two-tone telephone-style burst; repeated by the admin alert while pending.
+  playNotes([440, 480, 440, 480], 0.13, 0.28, 0.42);
 }
 
 export function playOrderStatusSound() {

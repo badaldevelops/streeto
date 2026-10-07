@@ -622,7 +622,7 @@ setPollingEnabled(true);
 
               <button
                 type="button"
-                onClick={loadOrders}
+                onClick={() => void loadOrders()}
                 className="mt-6 rounded-xl bg-orange-500 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-orange-600"
               >
                 Refresh Orders
@@ -743,6 +743,29 @@ setPollingEnabled(true);
                           )}
                         </select>
 
+                      </div>
+
+                      <div className="mt-4 border-t border-orange-100 pt-4">
+                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-gray-600">
+                          Move order through its stages
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {(order.type === "DELIVERY"
+                            ? ["ACCEPTED", "PREPARING", "READY", "ASSIGNED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"]
+                            : ["ACCEPTED", "PREPARING", "READY", "COMPLETED"]
+                          ).map((stage) => (
+                            <button
+                              key={stage}
+                              type="button"
+                              disabled={isUpdating || order.status === "CANCELLED" || order.status === stage}
+                              onClick={() => void updateOrderStatus(order.id, stage)}
+                              aria-current={order.status === stage ? "step" : undefined}
+                              className={`min-h-10 rounded-full border px-3 py-2 text-xs font-extrabold transition disabled:cursor-not-allowed disabled:opacity-50 ${order.status === stage ? "border-orange-500 bg-orange-500 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50"}`}
+                            >
+                              {order.status === stage ? `✓ ${formatStatus(stage)}` : formatStatus(stage)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       {isUpdating && (

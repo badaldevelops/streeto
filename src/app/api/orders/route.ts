@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/session";
+import { sendNewOrderPush } from "@/lib/business-push";
 
 export async function POST(request: Request) {
   try {
@@ -479,6 +480,12 @@ customerLongitude:
           payment: true,
         },
       });
+
+    await sendNewOrderPush(outlet.companyId, {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      total: order.total,
+    });
 
     return NextResponse.json({
       success: true,

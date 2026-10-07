@@ -17,6 +17,7 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       SESSION_SECRET: bindings.secret(),
+      VAPID_PRIVATE_KEY: bindings.secret(),
       HYPERDRIVE: bindings.hyperdrive({ id: hyperdriveId }),
     },
   }),
