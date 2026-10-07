@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import OrderSoundControl from "@/app/components/OrderSoundControl";
+import OrderAcceptanceAlert from "@/app/components/OrderAcceptanceAlert";
 
 type Order = {
   id: string;
@@ -276,7 +276,7 @@ setPollingEnabled(true);
   async function updateOrderStatus(
     orderId: string,
     status: string
-  ) {
+  ): Promise<boolean> {
     try {
       setUpdatingOrderId(orderId);
       setError("");
@@ -303,7 +303,7 @@ setPollingEnabled(true);
           data.error ||
             "Unable to update order status."
         );
-        return;
+        return false;
       }
 
       setOrders((currentOrders) =>
@@ -324,6 +324,7 @@ setPollingEnabled(true);
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
+      return true;
     } catch (error) {
       console.error(
         "Update order status error:",
@@ -333,10 +334,15 @@ setPollingEnabled(true);
       setError(
         "Something went wrong while updating the order."
       );
+      return false;
     } finally {
       setUpdatingOrderId(null);
     }
   }
+
+  const pendingOrder = orders.find(
+    (order) => order.status === "PLACED"
+  );
 
    async function assignDelivery(
     orderId: string,
@@ -440,10 +446,6 @@ setPollingEnabled(true);
             </div>
 
             <div className="flex flex-wrap items-start gap-3">
-              <OrderSoundControl
-                active={orders.some((order) => order.status === "PLACED")}
-                label="new order"
-              />
               <button
                 type="button"
                 onClick={() => void loadOrders(true)}
@@ -1017,13 +1019,26 @@ setPollingEnabled(true);
         )}
 
                         
-        <div className="py-8 text-center">
+      <div className="py-8 text-center">
           <p className="text-xs font-medium text-gray-400">
             Business Orders Management
           </p>
-        </div>
+      </div>
 
       </div>
+      {pendingOrder && (
+        <OrderAcceptanceAlert
+          busy={updatingOrderId === pendingOrder.id}
+          error={error}
+          onAccept={() =>
+            updateOrderStatus(pendingOrder.id, "ACCEPTED")
+          }
+          onReject={() =>
+            updateOrderStatus(pendingOrder.id, "CANCELLED")
+          }
+          order={pendingOrder}
+        />
+      )}
     </main>
   );
 }

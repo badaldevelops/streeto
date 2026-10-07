@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   customerOrderTrackedEvent,
-  playOrderConfirmedSound,
+  enableOrderSounds,
+  playOrderStatusSound,
   readTrackedCustomerOrders,
   saveTrackedCustomerOrders,
   type TrackedCustomerOrder,
@@ -18,6 +19,34 @@ export default function CustomerOrderSoundMonitor() {
   const trackedOrders = useRef<TrackedCustomerOrder[]>([]);
   const requestInFlight = useRef(false);
   const [isTracking, setIsTracking] = useState(false);
+
+  useEffect(() => {
+    function enableOnCustomerInteraction() {
+      void enableOrderSounds().then((ready) => {
+        if (ready) {
+          window.removeEventListener(
+            "pointerdown",
+            enableOnCustomerInteraction
+          );
+          window.removeEventListener(
+            "keydown",
+            enableOnCustomerInteraction
+          );
+        }
+      });
+    }
+
+    window.addEventListener("pointerdown", enableOnCustomerInteraction);
+    window.addEventListener("keydown", enableOnCustomerInteraction);
+
+    return () => {
+      window.removeEventListener(
+        "pointerdown",
+        enableOnCustomerInteraction
+      );
+      window.removeEventListener("keydown", enableOnCustomerInteraction);
+    };
+  }, []);
 
   useEffect(() => {
     function syncTrackedOrders() {
@@ -84,34 +113,51 @@ export default function CustomerOrderSoundMonitor() {
         );
         const now = Date.now();
         const maxAge = 7 * 24 * 60 * 60 * 1000;
-        const remaining = trackedOrders.current.filter((tracked) => {
+        const updatedTrackedOrders = trackedOrders.current.flatMap((tracked) => {
           if (!checkedOrderIds.has(tracked.id)) {
-            return now - tracked.trackedAt < maxAge;
+            return now - tracked.trackedAt < maxAge ? [tracked] : [];
           }
 
           const status = statuses.get(tracked.id);
 
-          if (status && status !== "PLACED") {
-            if (
-              status !== "CANCELLED" &&
-              !playOrderConfirmedSound()
-            ) {
-              return true;
-            }
-            return false;
+          if (!status) {
+            return now - tracked.trackedAt < maxAge ? [tracked] : [];
           }
 
-          return now - tracked.trackedAt < maxAge;
+          let lastStatus = tracked.lastStatus;
+
+          if (!lastStatus) {
+            lastStatus = status;
+          } else if (lastStatus !== status) {
+            if (!playOrderStatusSound()) {
+              return [tracked];
+            }
+            lastStatus = status;
+          }
+
+          if (
+            (status === "CANCELLED" || status === "COMPLETED") &&
+            lastStatus === status
+          ) {
+            return [];
+          }
+
+          return now - tracked.trackedAt < maxAge
+            ? [{ ...tracked, lastStatus }]
+            : [];
         });
 
         if (stopped) {
           return;
         }
 
-        if (remaining.length !== trackedOrders.current.length) {
-          trackedOrders.current = remaining;
-          saveTrackedCustomerOrders(remaining);
-          setIsTracking(remaining.length > 0);
+        if (
+          JSON.stringify(updatedTrackedOrders) !==
+          JSON.stringify(trackedOrders.current)
+        ) {
+          trackedOrders.current = updatedTrackedOrders;
+          saveTrackedCustomerOrders(updatedTrackedOrders);
+          setIsTracking(updatedTrackedOrders.length > 0);
         }
       } catch (error) {
         console.error("Customer order sound check failed:", error);

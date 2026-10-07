@@ -4,6 +4,7 @@ export const customerOrderTrackedEvent = "streeto:customer-order-tracked";
 export type TrackedCustomerOrder = {
   id: string;
   trackedAt: number;
+  lastStatus?: string;
 };
 
 let audioContext: AudioContext | null = null;
@@ -67,12 +68,12 @@ export function playNewOrderSound() {
   playNotes([880, 660], 0.18, 0.15);
 }
 
-export function playOrderConfirmedSound() {
+export function playOrderStatusSound() {
   if (!audioContext || audioContext.state !== "running") {
     return false;
   }
 
-  playNotes([659, 784, 1047], 0.14, 0.24);
+  playNotes([784, 1047], 0.12, 0.2);
   return true;
 }
 
@@ -94,6 +95,8 @@ export function readTrackedCustomerOrders(): TrackedCustomerOrder[] {
       (item): item is TrackedCustomerOrder =>
         typeof item?.id === "string" &&
         typeof item?.trackedAt === "number" &&
+        (item?.lastStatus === undefined ||
+          typeof item.lastStatus === "string") &&
         Date.now() - item.trackedAt < maxAge
     );
 
@@ -123,7 +126,10 @@ export function saveTrackedCustomerOrders(
   window.dispatchEvent(new Event(customerOrderTrackedEvent));
 }
 
-export function trackCustomerOrderForConfirmation(orderId: string) {
+export function trackCustomerOrderForConfirmation(
+  orderId: string,
+  initialStatus = "PLACED"
+) {
   if (!orderId || typeof window === "undefined") {
     return;
   }
@@ -136,6 +142,10 @@ export function trackCustomerOrderForConfirmation(orderId: string) {
 
   saveTrackedCustomerOrders([
     ...tracked,
-    { id: orderId, trackedAt: Date.now() },
+    {
+      id: orderId,
+      trackedAt: Date.now(),
+      lastStatus: initialStatus,
+    },
   ]);
 }
