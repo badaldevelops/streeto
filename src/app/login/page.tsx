@@ -135,8 +135,8 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <p className="text-gray-500">
+      <main className="flex min-h-[100svh] items-center justify-center bg-[#fffaf5] px-4 text-gray-900">
+        <p className="font-semibold text-gray-700">
           Checking session...
         </p>
       </main>
@@ -145,38 +145,38 @@ export default function LoginPage() {
 
   if (user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-        <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-sm sm:p-8">
+      <main className="flex min-h-[100svh] items-center justify-center bg-[#fffaf5] px-4 py-8 text-gray-900 sm:py-10">
+        <div className="w-full max-w-md rounded-3xl border border-orange-100 bg-white p-6 text-gray-900 shadow-lg shadow-orange-950/5 sm:p-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-3xl font-black text-gray-950">
               MR DABS
             </h1>
 
-            <p className="mt-2 text-gray-500">
+            <p className="mt-2 font-medium text-gray-600">
               Redirecting to your dashboard...
             </p>
           </div>
 
           <div className="mt-8 rounded-2xl bg-gray-100 p-5">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm font-medium text-gray-600">
               Welcome
             </p>
 
-            <p className="mt-1 text-xl font-bold">
+            <p className="mt-1 text-xl font-bold text-gray-950">
               {user.name}
             </p>
 
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-700">
               {user.email}
             </p>
 
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-700">
               {user.phone}
             </p>
           </div>
 
           {message && (
-            <div className="mt-5 rounded-xl bg-gray-100 px-4 py-3 text-sm">
+            <div className="mt-5 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-800">
               {message}
             </div>
           )}
@@ -194,14 +194,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-sm sm:p-8">
+      <main className="flex min-h-[100svh] items-center justify-center bg-[#fffaf5] px-4 py-8 text-gray-900 sm:py-10">
+      <div className="w-full max-w-md rounded-3xl border border-orange-100 bg-white p-6 text-gray-900 shadow-lg shadow-orange-950/5 sm:p-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-black text-gray-950">
             MR DABS
           </h1>
 
-          <p className="mt-2 text-gray-500">
+          <p className="mt-2 font-medium text-gray-600">
             Login to your account
           </p>
         </div>
@@ -211,7 +211,7 @@ export default function LoginPage() {
           className="mt-8 space-y-5"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label className="mb-1 block text-sm font-bold text-gray-800">
               Email
             </label>
 
@@ -223,12 +223,12 @@ export default function LoginPage() {
                 setEmail(event.target.value)
               }
               placeholder="Enter your email"
-              className="w-full rounded-xl border px-4 py-3 outline-none focus:border-black"
+              className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-medium text-gray-950 outline-none placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label className="mb-1 block text-sm font-bold text-gray-800">
               Password
             </label>
 
@@ -245,7 +245,7 @@ export default function LoginPage() {
                   setPassword(event.target.value)
                 }
                 placeholder="Enter your password"
-                className="w-full rounded-xl border px-4 py-3 pr-12 outline-none focus:border-black"
+                className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-base font-medium text-gray-950 outline-none placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
               />
 
               <button
@@ -253,7 +253,7 @@ export default function LoginPage() {
                 onClick={() =>
                   setShowPassword(!showPassword)
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xl"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 aria-label={
                   showPassword
                     ? "Hide password"
@@ -266,7 +266,7 @@ export default function LoginPage() {
           </div>
 
           {message && (
-            <div className="rounded-xl bg-gray-100 px-4 py-3 text-sm">
+            <div className="rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-800">
               {message}
             </div>
           )}
@@ -274,7 +274,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-black px-4 py-4 font-semibold text-white transition hover:bg-gray-800 disabled:opacity-50"
+            className="min-h-12 w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-4 font-extrabold text-white shadow-md shadow-orange-200 transition hover:from-orange-600 hover:to-red-600 disabled:opacity-50"
           >
             {loading
               ? "Logging in..."
@@ -282,11 +282,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm font-medium text-gray-700">
           Don&apos;t have an account?{" "}
           <a
             href="/register"
-            className="font-semibold text-black underline"
+            className="font-bold text-orange-700 underline decoration-2 underline-offset-2 hover:text-red-700"
           >
             Create Account
           </a>
