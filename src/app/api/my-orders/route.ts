@@ -4,6 +4,12 @@ import { verifySession } from "@/lib/session";
 
 export async function GET(request: Request) {
   try {
+    const requestedOrderIds = new URL(request.url).searchParams
+      .get("orderIds")
+      ?.split(",")
+      .filter(Boolean)
+      .slice(0, 25);
+
     const cookieHeader = request.headers.get("cookie");
 
     const sessionToken = cookieHeader
@@ -57,6 +63,9 @@ export async function GET(request: Request) {
     const orders = await prisma.order.findMany({
       where: {
         customerId: customer.id,
+        ...(requestedOrderIds
+          ? { id: { in: requestedOrderIds } }
+          : {}),
       },
       orderBy: {
         createdAt: "desc",

@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  enableOrderSounds,
+  trackCustomerOrderForConfirmation,
+} from "@/lib/order-notifications";
 
 import { useCart } from "./CartProvider";
 import GoogleLocationPicker from "./GoogleLocationPicker";
@@ -332,7 +336,8 @@ if (orderType === "DELIVERY") {
   );
 }    
 
-setPlacingOrder(true);
+    await enableOrderSounds();
+    setPlacingOrder(true);
 
     try {
       const response = await fetch("/api/orders", {
@@ -363,6 +368,8 @@ setPlacingOrder(true);
         alert(data.error || "Unable to create order.");
         return;
       }
+
+      trackCustomerOrderForConfirmation(data.order.id);
 
       alert(
         `Order placed successfully!\nOrder Number: ${data.order.orderNumber}`

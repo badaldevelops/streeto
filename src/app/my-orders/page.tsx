@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OrderSoundControl from "@/app/components/OrderSoundControl";
 
 type OrderItem = {
   id: string;
@@ -336,19 +337,22 @@ export default function MyOrdersPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
-              🛍️
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <OrderSoundControl label="confirmation" variant="light" />
+            <div className="flex items-center gap-2 rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
+                🛍️
+              </span>
 
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">
-                Total Orders
-              </p>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                  Total Orders
+                </p>
 
-              <p className="text-lg font-black text-gray-950">
-                {orders.length}
-              </p>
+                <p className="text-lg font-black text-gray-950">
+                  {orders.length}
+                </p>
+              </div>
             </div>
           </div>
         </div>

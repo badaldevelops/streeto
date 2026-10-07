@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import OrderSoundControl from "@/app/components/OrderSoundControl";
 
 type Order = {
   id: string;
@@ -128,6 +129,7 @@ export default function BusinessAdminOrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pollingEnabled, setPollingEnabled] = useState(false);
   const [error, setError] = useState("");
   const [expandedOrder, setExpandedOrder] =
     useState<string | null>(null);
@@ -147,9 +149,11 @@ export default function BusinessAdminOrdersPage() {
   const [assigningOrderId, setAssigningOrderId] =
     useState<string | null>(null);
 
-  async function loadOrders() {
+  async function loadOrders(showLoading = false) {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError("");
 
       const response = await fetch(
@@ -179,7 +183,9 @@ export default function BusinessAdminOrdersPage() {
         "Something went wrong while loading orders."
       );
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }
 
@@ -230,8 +236,9 @@ export default function BusinessAdminOrdersPage() {
   return;
 }
 
-await loadOrders();
+await loadOrders(true);
 await loadDeliveryStaff();
+setPollingEnabled(true);
         
       } catch (error) {
         console.error(
@@ -245,6 +252,20 @@ await loadDeliveryStaff();
 
     checkLogin();
   }, [router]);
+
+  useEffect(() => {
+    if (!pollingEnabled) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadOrders();
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [pollingEnabled]);
 
   function toggleOrder(orderId: string) {
     setExpandedOrder((current) =>
@@ -418,16 +439,20 @@ await loadDeliveryStaff();
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={loadOrders}
-              disabled={loading}
-              className="rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-orange-600 shadow-lg transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading
-                ? "Loading..."
-                : "↻ Refresh Orders"}
-            </button>
+            <div className="flex flex-wrap items-start gap-3">
+              <OrderSoundControl
+                active={orders.some((order) => order.status === "PLACED")}
+                label="new order"
+              />
+              <button
+                type="button"
+                onClick={() => void loadOrders(true)}
+                disabled={loading}
+                className="rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-orange-600 shadow-lg transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Loading..." : "↻ Refresh Orders"}
+              </button>
+            </div>
 
           </div>
         </section>
