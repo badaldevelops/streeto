@@ -7,6 +7,7 @@ import CartButton from "@/app/components/CartButton";
 import CartPanel from "@/app/components/CartPanel";
 import Checkout from "@/app/components/Checkout";
 import CustomerStatus from "@/app/components/CustomerStatus";
+import StoreStatusSync from "@/app/components/StoreStatusSync";
 import MobileCustomerNav from "@/app/components/MobileCustomerNav";
 
 import { prisma } from "@/lib/prisma";
@@ -82,6 +83,7 @@ if (user?.role === "SUPER_ADMIN") {
 
   return (
     <main className="min-h-screen bg-[#fffaf5] pb-20 text-gray-900 sm:pb-0">
+      <StoreStatusSync initialStatuses={{ [business.id]: business.isOpen }} />
       {/* NAVBAR */}
       <header className="sticky top-0 z-40 border-b border-orange-100/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">

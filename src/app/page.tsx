@@ -10,6 +10,7 @@ import MobileCustomerNav from "./components/MobileCustomerNav";
 
 import Checkout from "./components/Checkout";
 import CustomerStatus from "./components/CustomerStatus";
+import StoreStatusSync from "./components/StoreStatusSync";
 
 import { prisma } from "@/lib/prisma";
 
@@ -58,6 +59,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#fffaf5] pb-20 text-gray-900 sm:pb-0">
+      <StoreStatusSync
+        initialStatuses={Object.fromEntries(
+          businesses.map((business) => [business.id, business.isOpen])
+        )}
+      />
       {/* TOP NAV */}
       <header className="sticky top-0 z-40 border-b border-orange-100/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
