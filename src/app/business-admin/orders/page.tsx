@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import OrderAcceptanceAlert from "@/app/components/OrderAcceptanceAlert";
 
@@ -148,8 +148,13 @@ export default function BusinessAdminOrdersPage() {
 
   const [assigningOrderId, setAssigningOrderId] =
     useState<string | null>(null);
+  const ordersLoadSequence = useRef(0);
+  const ordersRevision = useRef(0);
 
   async function loadOrders(showLoading = false) {
+    const requestSequence = ++ordersLoadSequence.current;
+    const revisionAtRequest = ordersRevision.current;
+
     try {
       if (showLoading) {
         setLoading(true);
@@ -166,14 +171,34 @@ export default function BusinessAdminOrdersPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (
+          requestSequence !== ordersLoadSequence.current ||
+          revisionAtRequest !== ordersRevision.current
+        ) {
+          return;
+        }
         setError(
           data.error || "Unable to load orders."
         );
         return;
       }
 
+      if (
+        requestSequence !== ordersLoadSequence.current ||
+        revisionAtRequest !== ordersRevision.current
+      ) {
+        return;
+      }
+
       setOrders(data.orders || []);
     } catch (error) {
+      if (
+        requestSequence !== ordersLoadSequence.current ||
+        revisionAtRequest !== ordersRevision.current
+      ) {
+        return;
+      }
+
       console.error(
         "Load business orders error:",
         error
@@ -277,6 +302,8 @@ setPollingEnabled(true);
     orderId: string,
     status: string
   ): Promise<boolean> {
+    const updateRevision = ++ordersRevision.current;
+
     try {
       setUpdatingOrderId(orderId);
       setError("");
@@ -306,6 +333,7 @@ setPollingEnabled(true);
         return false;
       }
 
+      ordersRevision.current += 1;
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
           order.id === orderId
@@ -324,6 +352,7 @@ setPollingEnabled(true);
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
+      void loadOrders();
       return true;
     } catch (error) {
       console.error(
@@ -336,6 +365,9 @@ setPollingEnabled(true);
       );
       return false;
     } finally {
+      if (ordersRevision.current === updateRevision) {
+        ordersRevision.current += 1;
+      }
       setUpdatingOrderId(null);
     }
   }
