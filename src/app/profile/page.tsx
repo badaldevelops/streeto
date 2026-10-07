@@ -263,7 +263,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 px-5 py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <p className="text-gray-600">
             Loading your profile...
@@ -275,7 +275,7 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gray-50 px-5 py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             {error}
@@ -287,7 +287,7 @@ export default function ProfilePage() {
 
   if (!customer) {
     return (
-      <main className="min-h-screen bg-gray-50 px-5 py-10">
+      <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-2xl border bg-white p-6 text-center">
             <h1 className="text-xl font-bold">
@@ -307,7 +307,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-5 py-10">
+    <main className="min-h-screen bg-gray-50 px-3 py-5 sm:px-5 sm:py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6">
           <a
@@ -317,7 +317,7 @@ export default function ProfilePage() {
             ← Back to Menu
           </a>
 
-          <h1 className="mt-4 text-3xl font-bold">
+          <h1 className="mt-3 text-2xl font-bold sm:mt-4 sm:text-3xl">
             My Profile
           </h1>
 
@@ -326,7 +326,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
           <div className="space-y-5">
             <div>
               <p className="text-sm text-gray-500">
@@ -360,7 +360,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="mt-4 rounded-2xl border bg-white p-4 shadow-sm sm:mt-6 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold">
@@ -379,7 +379,7 @@ export default function ProfilePage() {
                 setAddressError("");
                 setAddressMessage("");
               }}
-              className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white"
+              className="min-h-11 shrink-0 rounded-xl bg-black px-3 py-2 text-xs font-semibold text-white sm:px-4 sm:text-sm"
             >
               {showAddressForm
                 ? "Cancel"

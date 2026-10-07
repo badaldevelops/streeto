@@ -294,7 +294,7 @@ export default function MyOrdersPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#fffaf5] px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#fffaf5] px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <div className="animate-pulse">
             <div className="h-4 w-28 rounded-full bg-orange-100" />
@@ -309,10 +309,10 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fffaf5] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <main className="min-h-screen bg-[#fffaf5] px-3 py-5 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto max-w-5xl">
         {/* HEADER */}
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <a
               href="/"
@@ -321,11 +321,11 @@ export default function MyOrdersPage() {
               ← Back to Menu
             </a>
 
-            <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-orange-500">
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-orange-500 sm:mt-6">
               Your Orders
             </p>
 
-            <h1 className="mt-1 text-4xl font-black tracking-tight text-gray-950 sm:text-5xl">
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-5xl">
               My Orders
             </h1>
 
@@ -368,7 +368,7 @@ export default function MyOrdersPage() {
 
         {/* EMPTY */}
         {!error && orders.length === 0 && (
-          <div className="rounded-[30px] border border-orange-100 bg-white p-10 text-center shadow-xl shadow-orange-100/40 sm:p-16">
+          <div className="rounded-[24px] border border-orange-100 bg-white p-6 text-center shadow-lg shadow-orange-100/30 sm:rounded-[30px] sm:p-16">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-4xl">
               🛒
             </div>
@@ -400,10 +400,10 @@ export default function MyOrdersPage() {
           {orders.map((order) => (
             <article
               key={order.id}
-              className="overflow-hidden rounded-[30px] border border-orange-100 bg-white shadow-xl shadow-orange-100/30"
+              className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-lg shadow-orange-100/25 sm:rounded-[30px] sm:shadow-xl"
             >
               {/* ORDER HEADER */}
-              <div className="border-b border-orange-100 bg-gradient-to-r from-white to-orange-50/60 p-5 sm:p-6">
+              <div className="border-b border-orange-100 bg-gradient-to-r from-white to-orange-50/60 p-4 sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">
@@ -433,7 +433,7 @@ export default function MyOrdersPage() {
                 </div>
               </div>
 
-              <div className="p-5 sm:p-6">
+              <div className="p-4 sm:p-6">
                 {/* PROGRESS */}
                 <OrderProgress order={order} />
 

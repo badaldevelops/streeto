@@ -51,17 +51,17 @@ export default function CustomerStatus() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         <a
           href="/login"
-          className="rounded-full border px-4 py-2 text-sm font-semibold"
+          className="rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold sm:px-4 sm:text-sm"
         >
           Login
         </a>
 
         <a
           href="/register"
-          className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white"
+          className="hidden rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:inline-flex"
         >
           Create Account
         </a>
@@ -70,7 +70,7 @@ export default function CustomerStatus() {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1.5 sm:gap-3">
       <div className="hidden text-right sm:block">
         <p className="text-sm font-semibold">
           Welcome, {user.name}
@@ -83,7 +83,7 @@ export default function CustomerStatus() {
 
       <a
         href="/my-orders"
-        className="rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100"
+        className="hidden rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100 sm:inline-flex"
       >
         My Orders
       </a>
@@ -91,7 +91,7 @@ export default function CustomerStatus() {
       <button
         type="button"
         onClick={handleLogout}
-        className="rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100"
+        className="hidden rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100 sm:inline-flex"
       >
         Logout
       </button>

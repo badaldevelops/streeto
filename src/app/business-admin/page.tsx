@@ -195,17 +195,17 @@ export default function BusinessAdminPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#fff8f2] px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#fff8f2] px-3 py-3 sm:px-6 sm:py-5 lg:px-8">
 
       <div className="mx-auto max-w-7xl">
 
         {/* HERO HEADER */}
-        <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-6 text-white shadow-[0_20px_50px_rgba(234,88,12,0.20)] sm:p-8">
+        <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-4 text-white shadow-[0_16px_40px_rgba(234,88,12,0.18)] sm:rounded-[30px] sm:p-8">
 
           <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
           <div className="absolute -bottom-28 right-24 h-64 w-64 rounded-full bg-white/5" />
 
-          <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative flex flex-col gap-4 sm:gap-7 lg:flex-row lg:items-center lg:justify-between">
 
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur">
@@ -213,11 +213,11 @@ export default function BusinessAdminPage() {
                 BUSINESS ADMIN PANEL
               </div>
 
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+              <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
                 {company?.name || "Business Dashboard"}
               </h1>
 
-              <p className="mt-3 max-w-2xl text-base font-medium leading-7 tracking-wide text-orange-50 sm:text-lg sm:leading-8">
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 tracking-wide text-orange-50 sm:mt-3 sm:text-lg sm:leading-8">
                 Welcome back,{" "}
 <span className="font-extrabold text-white">
   {user.name}
@@ -226,12 +226,12 @@ export default function BusinessAdminPage() {
 products and outlets from one place.
               </p>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <div className="rounded-xl bg-white/15 px-4 py-2.5 text-sm backdrop-blur">
+              <div className="mt-3 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
+                <div className="rounded-xl bg-white/15 px-3 py-2 text-xs backdrop-blur sm:px-4 sm:py-2.5 sm:text-sm">
                   👤 {user.name}
                 </div>
 
-                <div className="rounded-xl bg-white/15 px-4 py-2.5 text-sm backdrop-blur">
+                <div className="max-w-full truncate rounded-xl bg-white/15 px-3 py-2 text-xs backdrop-blur sm:px-4 sm:py-2.5 sm:text-sm">
                   ✉️ {user.email}
                 </div>
               </div>
@@ -252,7 +252,7 @@ products and outlets from one place.
                 type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-red-600 shadow-lg transition hover:bg-orange-50 disabled:opacity-50"
+                className="min-h-11 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-red-600 shadow-lg transition hover:bg-orange-50 disabled:opacity-50"
               >
                 {loggingOut
                   ? "Logging out..."
@@ -285,12 +285,12 @@ products and outlets from one place.
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
 
             {/* Orders */}
-            <div className="group rounded-[24px] border border-orange-100 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+            <div className="group rounded-2xl border border-orange-100 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg sm:rounded-[24px] sm:p-5">
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-2xl transition group-hover:scale-110">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-lg transition group-hover:scale-110 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
                   🛒
                 </div>
 
@@ -299,11 +299,11 @@ products and outlets from one place.
                 </span>
               </div>
 
-              <p className="mt-5 text-sm font-semibold text-gray-500">
+              <p className="mt-3 text-xs font-semibold text-gray-500 sm:mt-5 sm:text-sm">
                 Today&apos;s Orders
               </p>
 
-              <p className="mt-1 text-3xl font-black text-gray-900">
+              <p className="mt-1 text-2xl font-black text-gray-900 sm:text-3xl">
                 {stats?.todaysOrders ?? 0}
               </p>
 
@@ -313,9 +313,9 @@ products and outlets from one place.
             </div>
 
             {/* Sales */}
-            <div className="group rounded-[24px] border border-green-100 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+            <div className="group rounded-2xl border border-green-100 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg sm:rounded-[24px] sm:p-5">
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-2xl transition group-hover:scale-110">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 text-lg transition group-hover:scale-110 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
                   💰
                 </div>
 
@@ -324,11 +324,11 @@ products and outlets from one place.
                 </span>
               </div>
 
-              <p className="mt-5 text-sm font-semibold text-gray-500">
+              <p className="mt-3 text-xs font-semibold text-gray-500 sm:mt-5 sm:text-sm">
                 Today&apos;s Sales
               </p>
 
-              <p className="mt-1 text-3xl font-black text-gray-900">
+              <p className="mt-1 text-2xl font-black text-gray-900 sm:text-3xl">
                 ₹{stats?.todaysSales ?? 0}
               </p>
 
@@ -338,9 +338,9 @@ products and outlets from one place.
             </div>
 
             {/* Outlets */}
-            <div className="group rounded-[24px] border border-amber-100 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+            <div className="group rounded-2xl border border-amber-100 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg sm:rounded-[24px] sm:p-5">
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-2xl transition group-hover:scale-110">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-lg transition group-hover:scale-110 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
                   🏪
                 </div>
 
@@ -349,11 +349,11 @@ products and outlets from one place.
                 </span>
               </div>
 
-              <p className="mt-5 text-sm font-semibold text-gray-500">
+              <p className="mt-3 text-xs font-semibold text-gray-500 sm:mt-5 sm:text-sm">
                 Active Outlets
               </p>
 
-              <p className="mt-1 text-3xl font-black text-gray-900">
+              <p className="mt-1 text-2xl font-black text-gray-900 sm:text-3xl">
                 {stats?.outlets ?? 0}
               </p>
 
@@ -363,9 +363,9 @@ products and outlets from one place.
             </div>
 
             {/* Products */}
-            <div className="group rounded-[24px] border border-red-100 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+            <div className="group rounded-2xl border border-red-100 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg sm:rounded-[24px] sm:p-5">
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-2xl transition group-hover:scale-110">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-lg transition group-hover:scale-110 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
                   🍔
                 </div>
 
@@ -374,11 +374,11 @@ products and outlets from one place.
                 </span>
               </div>
 
-              <p className="mt-5 text-sm font-semibold text-gray-500">
+              <p className="mt-3 text-xs font-semibold text-gray-500 sm:mt-5 sm:text-sm">
                 Active Products
               </p>
 
-              <p className="mt-1 text-3xl font-black text-gray-900">
+              <p className="mt-1 text-2xl font-black text-gray-900 sm:text-3xl">
                 {stats?.products ?? 0}
               </p>
 
@@ -403,19 +403,19 @@ products and outlets from one place.
             </h2>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
 
             {menuItems.map((item) => (
               <button
                 key={item.title}
                 type="button"
                 onClick={() => router.push(item.href)}
-                className={`group ${item.bg} rounded-[24px] border border-white p-5 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl`}
+                className={`group ${item.bg} rounded-2xl border border-white p-3 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:rounded-[24px] sm:p-5`}
               >
                 <div className="flex items-start justify-between">
 
                   <div
-                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${item.iconBg} text-2xl text-white shadow-md transition duration-300 group-hover:scale-110 group-hover:rotate-2`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.iconBg} text-xl text-white shadow-md transition duration-300 group-hover:scale-110 group-hover:rotate-2 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl`}
                   >
                     {item.icon}
                   </div>
@@ -425,15 +425,15 @@ products and outlets from one place.
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-xl font-black text-gray-900">
+                <h3 className="mt-3 text-base font-black text-gray-900 sm:mt-5 sm:text-xl">
                   {item.title}
                 </h3>
 
-                <p className="mt-2 text-sm leading-5 text-gray-600">
+                <p className="mt-1 text-xs leading-4 text-gray-600 sm:mt-2 sm:text-sm sm:leading-5">
                   {item.description}
                 </p>
 
-                <p className="mt-5 text-sm font-extrabold text-gray-900">
+                <p className="mt-3 text-xs font-extrabold text-gray-900 sm:mt-5 sm:text-sm">
                   Open {item.title}
                   <span className="ml-2 transition group-hover:ml-3">
                     →

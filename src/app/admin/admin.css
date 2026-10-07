@@ -405,11 +405,21 @@
   }
 
   .admin-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .admin-stat {
+    padding: 15px;
+    border-radius: 17px;
+  }
+
+  .admin-stat-value {
+    font-size: 28px;
   }
 
   .admin-section {
-    padding: 22px;
+    padding: 18px;
     border-radius: 22px;
   }
 
@@ -419,6 +429,7 @@
   }
 
   .admin-management-card {
-    min-height: 195px;
+    min-height: 0;
+    padding: 18px;
   }
 }
