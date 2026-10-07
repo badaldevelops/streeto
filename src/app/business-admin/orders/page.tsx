@@ -150,6 +150,7 @@ export default function BusinessAdminOrdersPage() {
     useState<string | null>(null);
   const ordersLoadSequence = useRef(0);
   const ordersRevision = useRef(0);
+  const resolvedOrderIds = useRef(new Set<string>());
 
   async function loadOrders(showLoading = false) {
     const requestSequence = ++ordersLoadSequence.current;
@@ -334,6 +335,9 @@ setPollingEnabled(true);
       }
 
       ordersRevision.current += 1;
+      if (data.order.status !== "PLACED") {
+        resolvedOrderIds.current.add(orderId);
+      }
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
           order.id === orderId
@@ -373,7 +377,9 @@ setPollingEnabled(true);
   }
 
   const pendingOrder = orders.find(
-    (order) => order.status === "PLACED"
+    (order) =>
+      order.status === "PLACED" &&
+      !resolvedOrderIds.current.has(order.id)
   );
 
    async function assignDelivery(
