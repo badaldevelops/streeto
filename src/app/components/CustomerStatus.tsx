@@ -54,16 +54,17 @@ export default function CustomerStatus() {
       <div className="flex items-center gap-1.5 sm:gap-3">
         <a
           href="/login"
-          className="rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold sm:px-4 sm:text-sm"
+          className="rounded-full border border-gray-300 px-2 py-2 text-[10px] font-bold text-gray-800 sm:px-4 sm:text-sm"
         >
           Login
         </a>
 
         <a
           href="/register"
-          className="hidden rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:inline-flex"
+          className="rounded-full bg-black px-2 py-2 text-[10px] font-bold text-white sm:px-4 sm:text-sm"
         >
-          Create Account
+          <span className="sm:hidden">Sign up</span>
+          <span className="hidden sm:inline">Create Account</span>
         </a>
       </div>
     );
@@ -82,6 +83,13 @@ export default function CustomerStatus() {
       </div>
 
       <a
+        href="/profile"
+        className="rounded-full border border-gray-300 px-1.5 py-2 text-[10px] font-bold text-gray-800 hover:bg-gray-100 sm:px-4 sm:text-sm"
+      >
+        Account
+      </a>
+
+      <a
         href="/my-orders"
         className="hidden rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100 sm:inline-flex"
       >
@@ -91,7 +99,7 @@ export default function CustomerStatus() {
       <button
         type="button"
         onClick={handleLogout}
-        className="hidden rounded-full border px-4 py-2 text-sm font-semibold hover:bg-gray-100 sm:inline-flex"
+        className="rounded-full border border-gray-300 px-1.5 py-2 text-[10px] font-bold text-gray-800 hover:bg-gray-100 sm:px-4 sm:text-sm"
       >
         Logout
       </button>

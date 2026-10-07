@@ -40,10 +40,7 @@ export default function RegisterPage() {
 
       setMessage("Account created successfully! 🎉");
 
-      setName("");
-      setEmail("");
-      setPhone("");
-      setPassword("");
+      window.location.assign("/");
     } catch (error) {
       console.error(error);
       setMessage("Something went wrong. Please try again.");

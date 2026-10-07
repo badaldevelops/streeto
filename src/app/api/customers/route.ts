@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { createSession } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -69,13 +70,24 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(
+    const sessionToken = await createSession(customer.id);
+    const response = NextResponse.json(
       {
         success: true,
         customer,
       },
       { status: 201 }
     );
+
+    response.cookies.set("session", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Customer registration error:", error);
 
