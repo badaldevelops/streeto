@@ -141,6 +141,15 @@ export default function CustomerLocation() {
                   Exact location: {business.latitude.toFixed(5)},{" "}
                   {business.longitude.toFixed(5)}
                 </p>
+
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-orange-600"
+                >
+                  🗺️ Open directions in Google Maps
+                </a>
               </div>
             ))}
           </div>
