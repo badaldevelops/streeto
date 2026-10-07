@@ -7,8 +7,12 @@ export default defineConfig({
   worker: defineWorker({
     name: "streeto",
     entrypoint: "vinext/server/fetch-handler",
-    compatibilityDate: "2026-10-07",
+    compatibilityDate: "2026-09-25",
     compatibilityFlags: ["nodejs_compat"],
+    observability: {
+      enabled: true,
+      logs: { enabled: true },
+    },
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
