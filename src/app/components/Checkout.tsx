@@ -44,7 +44,8 @@ export default function Checkout() {
 
   const [orderType, setOrderType] = useState<
     "DELIVERY" | "SELF_RECEIVE"
-  >("DELIVERY");
+  >("SELF_RECEIVE");
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -134,6 +135,24 @@ const [pincode, setPincode] = useState("");
     useState(true);
   const [placingOrder, setPlacingOrder] =
     useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/delivery-availability", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        const data = await response.json();
+        return data.deliveryEnabled === true;
+      })
+      .then((enabled) => {
+        if (!cancelled) setDeliveryEnabled(enabled);
+      })
+      .catch((error) => {
+        console.error("Load delivery availability failed:", error);
+        if (!cancelled) setDeliveryEnabled(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     async function loadSavedAddresses() {
@@ -496,13 +515,15 @@ if (orderType === "DELIVERY") {
             </p>
 
             <p className="mt-1 text-sm text-gray-500">
-              Choose delivery or collect it yourself.
+              {deliveryEnabled
+                ? "Choose delivery or collect it yourself."
+                : "Self Receive is currently available."}
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={`grid gap-3 ${deliveryEnabled ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
 
-            <button
+            {deliveryEnabled && <button
               type="button"
               onClick={() => setOrderType("DELIVERY")}
               className={`relative overflow-hidden rounded-2xl border-2 p-5 text-left transition ${
@@ -538,7 +559,7 @@ if (orderType === "DELIVERY") {
                   </p>
                 </div>
               </div>
-            </button>
+            </button>}
 
             <button
               type="button"

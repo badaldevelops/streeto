@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Local Food | Fresh food from nearby businesses",
-  description: "Discover nearby food businesses, explore their menus, and order for delivery or self receive.",
+  description: "Discover nearby food businesses, explore their menus, and order for self receive or delivery where available.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

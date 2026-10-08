@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/session";
 import { sendNewOrderPush } from "@/lib/business-push";
+import { isDeliveryEnabled } from "@/lib/platform-settings";
 
 export async function POST(request: Request) {
   try {
@@ -93,6 +94,12 @@ export async function POST(request: Request) {
           error: "Invalid order type.",
         },
         { status: 400 }
+      );
+    }
+    if (orderType === "DELIVERY" && !(await isDeliveryEnabled())) {
+      return NextResponse.json(
+        { error: "Delivery is currently unavailable. Please choose Self Receive." },
+        { status: 403 }
       );
     }
     if (

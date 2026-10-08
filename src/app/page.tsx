@@ -13,6 +13,7 @@ import CustomerStatus from "./components/CustomerStatus";
 import StoreStatusSync from "./components/StoreStatusSync";
 
 import { prisma } from "@/lib/prisma";
+import { isDeliveryEnabled } from "@/lib/platform-settings";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -28,6 +29,8 @@ export default async function Home() {
   if (user?.role === "DELIVERY_STAFF") {
     redirect("/delivery");
   }
+
+  const deliveryEnabled = await isDeliveryEnabled();
 
   const businesses = await prisma.company.findMany({
     select: {
@@ -121,8 +124,9 @@ export default async function Home() {
 
             <p className="mt-3 max-w-2xl text-[13px] font-medium leading-5 text-gray-300 sm:mt-5 sm:text-base sm:leading-8">
               Discover your favourite local businesses, explore
-              their menus and order fresh food for delivery or
-              self receive.
+              their menus and order fresh food for {deliveryEnabled
+                ? "delivery or Self Receive."
+                : "Self Receive."}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
@@ -134,7 +138,7 @@ export default async function Home() {
               </a>
 
               <div className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-xs font-bold text-gray-200 backdrop-blur sm:rounded-2xl sm:px-5 sm:py-3.5 sm:text-sm">
-                🚚 Delivery & Self Receive
+                {deliveryEnabled ? "🚚 Delivery & Self Receive" : "🏪 Self Receive"}
               </div>
             </div>
           </div>
@@ -155,11 +159,13 @@ export default async function Home() {
             description="Order directly from nearby stores."
           />
 
-          <TrustCard
-            icon="🚚"
-            title="Easy Delivery"
-            description="Delivery availability shown by outlet."
-          />
+          {deliveryEnabled && (
+            <TrustCard
+              icon="🚚"
+              title="Easy Delivery"
+              description="Delivery is available at checkout."
+            />
+          )}
 
           <TrustCard
             icon="🥡"

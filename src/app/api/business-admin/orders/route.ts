@@ -28,12 +28,17 @@ export async function GET() {
       );
     }
 
-    const orders = await prisma.order.findMany({
-      where: {
-        outlet: {
-          companyId: user.companyId,
+    const [company, orders] = await Promise.all([
+      prisma.company.findUnique({
+        where: { id: user.companyId },
+        select: { isOpen: true },
+      }),
+      prisma.order.findMany({
+        where: {
+          outlet: {
+            companyId: user.companyId,
+          },
         },
-      },
 
       include: {
         outlet: {
@@ -87,13 +92,15 @@ export async function GET() {
         },
       },
 
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
+      company,
       orders,
     });
   } catch (error) {

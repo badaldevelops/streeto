@@ -76,6 +76,12 @@ model BusinessPushSubscription {
   @@index([userId])
 }
 
+model PlatformSettings {
+  id              String   @id @default("global")
+  deliveryEnabled Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
 model Product {
   id             String          @id @default(cuid())
   name           String

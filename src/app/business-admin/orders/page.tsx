@@ -128,6 +128,7 @@ export default function BusinessAdminOrdersPage() {
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [storeOpen, setStoreOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pollingEnabled, setPollingEnabled] = useState(false);
   const [error, setError] = useState("");
@@ -191,6 +192,7 @@ export default function BusinessAdminOrdersPage() {
         return;
       }
 
+      setStoreOpen(data.company?.isOpen === true);
       setOrders(data.orders || []);
     } catch (error) {
       if (
@@ -1091,6 +1093,7 @@ setPollingEnabled(true);
         <OrderAcceptanceAlert
           busy={updatingOrderId === pendingOrder.id}
           error={error}
+          soundActive={storeOpen}
           onAccept={() =>
             updateOrderStatus(pendingOrder.id, "ACCEPTED")
           }

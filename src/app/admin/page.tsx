@@ -57,11 +57,15 @@ export default function AdminPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [updatingDelivery, setUpdatingDelivery] = useState(false);
+  const [deliverySettingError, setDeliverySettingError] = useState("");
+  const [deliverySettingMessage, setDeliverySettingMessage] = useState("");
 
   const [error, setError] = useState("");
   const [outletsError, setOutletsError] = useState("");
@@ -110,10 +114,12 @@ export default function AdminPage() {
           statsResponse,
           companiesResponse,
           outletsResponse,
+          deliverySettingResponse,
         ] = await Promise.all([
           fetch("/api/admin-stats"),
           fetch("/api/admin/companies"),
           fetch("/api/admin/outlets"),
+          fetch("/api/admin/delivery-setting", { cache: "no-store" }),
         ]);
 
         const statsData = (await statsResponse.json()) as {
@@ -155,6 +161,15 @@ export default function AdminPage() {
             data.error || "Unable to load outlets."
           );
         }
+
+        if (deliverySettingResponse.ok) {
+          const deliverySetting = await deliverySettingResponse.json() as {
+            deliveryEnabled?: boolean;
+          };
+          setDeliveryEnabled(deliverySetting.deliveryEnabled === true);
+        } else {
+          setDeliverySettingError("Unable to load delivery setting.");
+        }
       } catch (error) {
         console.error(error);
         setError("Unable to load dashboard.");
@@ -177,6 +192,34 @@ export default function AdminPage() {
       console.error(error);
     } finally {
       router.replace("/login");
+    }
+  }
+
+  async function toggleDeliveryAvailability() {
+    if (updatingDelivery) return;
+    setUpdatingDelivery(true);
+    setDeliverySettingError("");
+    setDeliverySettingMessage("");
+    try {
+      const response = await fetch("/api/admin/delivery-setting", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryEnabled: !deliveryEnabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setDeliverySettingError(data.error || "Unable to update delivery setting.");
+        return;
+      }
+      setDeliveryEnabled(data.deliveryEnabled === true);
+      setDeliverySettingMessage(data.deliveryEnabled
+        ? "Delivery is now available to customers."
+        : "Customers can now choose Self Receive only.");
+    } catch (error) {
+      console.error("Update delivery setting failed:", error);
+      setDeliverySettingError("Unable to update delivery setting.");
+    } finally {
+      setUpdatingDelivery(false);
     }
   }
 
@@ -473,6 +516,38 @@ export default function AdminPage() {
               Counter / offline orders
             </p>
           </div>
+        </section>
+
+        <section className="admin-section">
+          <p className="admin-section-label">Order Options</p>
+          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="admin-section-title">Customer Delivery</h2>
+              <p className="admin-section-description">
+                {deliveryEnabled
+                  ? "Customers can choose Delivery or Self Receive at checkout."
+                  : "Delivery is off. Customers can place Self Receive orders only."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void toggleDeliveryAvailability()}
+              disabled={updatingDelivery}
+              className="admin-button"
+            >
+              {updatingDelivery
+                ? "Saving…"
+                : deliveryEnabled
+                  ? "Disable Delivery"
+                  : "Enable Delivery"}
+            </button>
+          </div>
+          {deliverySettingMessage && (
+            <div className="admin-alert admin-alert-success">{deliverySettingMessage}</div>
+          )}
+          {deliverySettingError && (
+            <div className="admin-alert admin-alert-error">{deliverySettingError}</div>
+          )}
         </section>
 
         {/* CREATE BUSINESS */}
