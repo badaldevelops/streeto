@@ -21,7 +21,8 @@ export async function POST(request: Request) {
       !customerName ||
       !customerPhone ||
       !orderType ||
-      !items?.length
+      !Array.isArray(items) ||
+      !items.length
     ) {
       return NextResponse.json(
         {
@@ -32,7 +33,48 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!/^[0-9]{10}$/.test(customerPhone)) {
+    if (
+      items.length > 50 ||
+      items.some(
+        (item: unknown) =>
+          typeof item !== "object" ||
+          item === null ||
+          typeof (item as { outletProductId?: unknown })
+            .outletProductId !== "string" ||
+          !(item as { outletProductId: string }).outletProductId ||
+          (item as { outletProductId: string }).outletProductId.length > 100 ||
+          !Number.isInteger(
+            (item as { quantity?: unknown }).quantity
+          ) ||
+          (item as { quantity: number }).quantity < 1 ||
+          (item as { quantity: number }).quantity > 99
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Invalid cart items." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof customerName !== "string" ||
+      !customerName.trim() ||
+      customerName.length > 100 ||
+      (deliveryAddress !== undefined &&
+        deliveryAddress !== null &&
+        (typeof deliveryAddress !== "string" ||
+          deliveryAddress.length > 500))
+    ) {
+      return NextResponse.json(
+        { error: "Invalid customer details." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof customerPhone !== "string" ||
+      !/^[0-9]{10}$/.test(customerPhone)
+    ) {
       return NextResponse.json(
         {
           error:

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { safeHttpsUrl } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -106,10 +107,18 @@ export async function POST(request: Request) {
         ? body.description.trim()
         : null;
 
-    const imageUrl =
-      typeof body.imageUrl === "string"
-        ? body.imageUrl.trim()
-        : null;
+    const imageUrl = safeHttpsUrl(body.imageUrl);
+
+    if (
+      typeof body.imageUrl === "string" &&
+      body.imageUrl.trim() &&
+      !imageUrl
+    ) {
+      return NextResponse.json(
+        { error: "Image URL must start with https://." },
+        { status: 400 }
+      );
+    }
 
     const outletId =
       typeof body.outletId === "string"
@@ -322,10 +331,20 @@ export async function PATCH(request: Request) {
     }
 
     if (body.imageUrl !== undefined) {
-      data.imageUrl =
-        typeof body.imageUrl === "string"
-          ? body.imageUrl.trim() || null
-          : null;
+      const imageUrl = safeHttpsUrl(body.imageUrl);
+
+      if (
+        typeof body.imageUrl === "string" &&
+        body.imageUrl.trim() &&
+        !imageUrl
+      ) {
+        return NextResponse.json(
+          { error: "Image URL must start with https://." },
+          { status: 400 }
+        );
+      }
+
+      data.imageUrl = imageUrl;
     }
 
     if (body.isActive !== undefined) {

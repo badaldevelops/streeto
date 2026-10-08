@@ -3,6 +3,14 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
 
+// Lazily-built bcrypt hash (cost 12) used only to equalise response timing
+// when the email is unknown, so login does not reveal which accounts exist.
+let dummyHash: Promise<string> | undefined;
+function getDummyHash() {
+  dummyHash ??= bcrypt.hash("timing-equalisation-placeholder", 12);
+  return dummyHash;
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
@@ -25,6 +33,9 @@ export async function POST(request: Request) {
     });
 
     if (!user || !user.passwordHash) {
+      // Burn comparable time so response timing does not reveal
+      // whether an account exists for this email.
+      await bcrypt.compare(password, await getDummyHash());
       return NextResponse.json(
         { error: "Invalid email or password." },
         { status: 401 }

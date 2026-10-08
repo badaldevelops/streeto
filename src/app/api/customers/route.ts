@@ -2,6 +2,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
+import { isValidPassword, PASSWORD_ERROR } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
@@ -27,10 +28,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (!isValidPassword(password)) {
       return NextResponse.json(
         {
-          error: "Password must be at least 6 characters.",
+          error: PASSWORD_ERROR,
         },
         { status: 400 }
       );

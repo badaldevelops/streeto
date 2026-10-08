@@ -637,8 +637,8 @@ export default function AdminPage() {
                   setBusinessPassword(event.target.value)
                 }
                 required
-                minLength={6}
-                placeholder="Minimum 6 characters"
+                minLength={8}
+                placeholder="Minimum 8 characters"
                 className="admin-input"
               />
             </div>

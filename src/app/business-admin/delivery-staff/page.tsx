@@ -235,10 +235,10 @@ export default function DeliveryStaffPage() {
 
       if (
         !editingStaff &&
-        form.password.length < 6
+        form.password.length < 8
       ) {
         setError(
-          "Password must be at least 6 characters."
+          "Password must be at least 8 characters."
         );
         return;
       }
@@ -246,10 +246,10 @@ export default function DeliveryStaffPage() {
       if (
         editingStaff &&
         form.password &&
-        form.password.length < 6
+        form.password.length < 8
       ) {
         setError(
-          "Password must be at least 6 characters."
+          "Password must be at least 8 characters."
         );
         return;
       }
@@ -659,6 +659,7 @@ export default function DeliveryStaffPage() {
                 >
                   <input
                     type="password"
+                    minLength={8}
                     value={form.password}
                     onChange={(event) =>
                       updateForm(
@@ -669,7 +670,7 @@ export default function DeliveryStaffPage() {
                     placeholder={
                       editingStaff
                         ? "Leave blank to keep current password"
-                        : "Minimum 6 characters"
+                        : "At least 8 characters"
                     }
                     required={!editingStaff}
                     className="input-style"

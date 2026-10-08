@@ -124,11 +124,12 @@ export default function RegisterPage() {
     <input
       required
       type={showPassword ? "text" : "password"}
-      minLength={6}
+      minLength={8}
+      maxLength={72}
       autoComplete="new-password"
       value={password}
       onChange={(event) => setPassword(event.target.value)}
-      placeholder="Minimum 6 characters"
+      placeholder="At least 8 characters"
       className="min-h-12 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-base font-medium text-gray-950 outline-none placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
     />
 

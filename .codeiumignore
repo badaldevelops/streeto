@@ -1,0 +1,11 @@
+# Keeps secrets out of Windsurf / Codeium indexing and AI context.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.dev.vars
+.cloudflare/
+.wrangler/

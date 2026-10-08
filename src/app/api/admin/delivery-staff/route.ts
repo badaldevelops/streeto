@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { isValidPassword, PASSWORD_ERROR } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -53,10 +54,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (!isValidPassword(password)) {
       return NextResponse.json(
         {
-          error: "Password must be at least 6 characters.",
+          error: PASSWORD_ERROR,
         },
         { status: 400 }
       );

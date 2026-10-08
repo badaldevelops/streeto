@@ -2,6 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  isValidPassword,
+  PASSWORD_ERROR,
+} from "@/lib/validation";
 import bcrypt from "bcryptjs";
 
 export async function GET() {
@@ -145,11 +149,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!password || password.length < 6) {
+    if (!isValidPassword(password)) {
       return NextResponse.json(
         {
-          error:
-            "Password must be at least 6 characters.",
+          error: PASSWORD_ERROR,
         },
         { status: 400 }
       );
@@ -204,7 +207,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash =
-      await bcrypt.hash(password, 10);
+      await bcrypt.hash(password, 12);
 
     const staff = await prisma.user.create({
       data: {
@@ -408,18 +411,17 @@ export async function PATCH(request: Request) {
           ? body.password
           : "";
 
-      if (password.length < 6) {
+      if (!isValidPassword(password)) {
         return NextResponse.json(
           {
-            error:
-              "Password must be at least 6 characters.",
+            error: PASSWORD_ERROR,
           },
           { status: 400 }
         );
       }
 
       data.passwordHash =
-        await bcrypt.hash(password, 10);
+        await bcrypt.hash(password, 12);
     }
 
     const staff = await prisma.user.update({

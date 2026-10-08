@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  isValidPassword,
+  normalizeEmail,
+  PASSWORD_ERROR,
+} from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
@@ -26,11 +31,11 @@ export async function POST(request: Request) {
 
     const {
       name,
-      email,
       phone,
       password,
       companyId,
     } = body;
+    const email = normalizeEmail(body.email);
 
     if (!name || !email || !password || !companyId) {
       return NextResponse.json(
@@ -38,6 +43,13 @@ export async function POST(request: Request) {
           error:
             "Name, email, password and company are required.",
         },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidPassword(password)) {
+      return NextResponse.json(
+        { error: PASSWORD_ERROR },
         { status: 400 }
       );
     }
@@ -72,7 +84,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const businessAdmin = await prisma.user.create({
       data: {

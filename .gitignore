@@ -30,8 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files and local secrets (never commit; .env.example is the template)
 .env*
+!.env.example
+.dev.vars
+*.key
+*.p12
+*.pfx
 
 # vercel
 .vercel
@@ -46,4 +51,5 @@ next-env.d.ts
 *.db-*
 /dist/
 .vinext/
+/.wrangler/
 .cloudflare/
