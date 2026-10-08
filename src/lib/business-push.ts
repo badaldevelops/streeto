@@ -22,6 +22,12 @@ export async function sendNewOrderPush(
   companyId: string,
   order: { id: string; orderNumber: string; total: number }
 ) {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { isOpen: true },
+  });
+  if (!company?.isOpen) return;
+
   const privateKey = (env as typeof env & { VAPID_PRIVATE_KEY?: string })
     .VAPID_PRIVATE_KEY;
   if (!privateKey) {
@@ -55,7 +61,7 @@ export async function sendNewOrderPush(
                 data: { url: "/business-admin" },
               }),
               // Keep a new order queued while a phone is asleep or temporarily offline.
-              options: { ttl: 86400 },
+              options: { ttl: 86400, urgency: "high" },
             },
             subscription,
             {

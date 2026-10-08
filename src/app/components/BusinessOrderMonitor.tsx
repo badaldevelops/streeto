@@ -16,7 +16,7 @@ type IncomingOrder = {
   items: { id: string; quantity: number; totalPrice: number; product: { name: string } }[];
 };
 
-export default function BusinessOrderMonitor() {
+export default function BusinessOrderMonitor({ isOpen }: { isOpen: boolean }) {
   const [pendingOrder, setPendingOrder] = useState<IncomingOrder | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -75,6 +75,7 @@ export default function BusinessOrderMonitor() {
   return <OrderAcceptanceAlert
     order={pendingOrder}
     busy={busy}
+    soundActive={isOpen}
     error={error}
     onAccept={() => update("ACCEPTED")}
     onReject={() => update("CANCELLED")}

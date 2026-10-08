@@ -65,8 +65,23 @@ function playNotes(notes: number[], spacing: number, duration: number, volume = 
 }
 
 export function playNewOrderSound() {
-  // Two-tone telephone-style burst; repeated by the admin alert while pending.
-  playNotes([440, 480, 440, 480], 0.13, 0.28, 0.42);
+  // Classic dual-tone telephone ring. The admin alert repeats it until resolved.
+  if (!audioContext || audioContext.state !== "running") return;
+  const startAt = audioContext.currentTime;
+  [440, 480].forEach((frequency) => {
+    const oscillator = audioContext!.createOscillator();
+    const gain = audioContext!.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.2, startAt + 0.03);
+    gain.gain.setValueAtTime(0.2, startAt + 0.78);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.9);
+    oscillator.connect(gain);
+    gain.connect(audioContext!.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + 0.92);
+  });
 }
 
 export function playOrderStatusSound() {

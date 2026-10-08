@@ -25,12 +25,14 @@ export default function OrderAcceptanceAlert({
   order,
   busy,
   error,
+  soundActive,
   onAccept,
   onReject,
 }: {
   order: AlertOrder;
   busy: boolean;
   error: string;
+  soundActive: boolean;
   onAccept: () => Promise<boolean>;
   onReject: () => Promise<boolean>;
 }) {
@@ -222,7 +224,7 @@ export default function OrderAcceptanceAlert({
             </button>
           </div>
           <div className="mt-3">
-            <OrderSoundControl active label="new order" />
+            <OrderSoundControl active={soundActive} />
           </div>
         </div>
       </section>

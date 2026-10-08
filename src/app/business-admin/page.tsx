@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BusinessOrderMonitor from "@/app/components/BusinessOrderMonitor";
-import BusinessPushNotifications from "@/app/components/BusinessPushNotifications";
+import BusinessPushNotifications, { prepareBusinessAlertsFromGesture } from "@/app/components/BusinessPushNotifications";
 
 type User = {
   id: string;
@@ -37,6 +37,7 @@ export default function BusinessAdminPage() {
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [updatingStoreStatus, setUpdatingStoreStatus] = useState(false);
+  const [alertSetupNotice, setAlertSetupNotice] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -128,13 +129,20 @@ export default function BusinessAdminPage() {
 
   async function toggleStoreStatus() {
     if (!company || updatingStoreStatus) return;
+    const openingStore = !company.isOpen;
+    if (openingStore) {
+      // Invoke browser permission and audio setup directly from the Open Store tap.
+      void prepareBusinessAlertsFromGesture().then((notice) => setAlertSetupNotice(notice || ""));
+    } else {
+      setAlertSetupNotice("");
+    }
     setUpdatingStoreStatus(true);
     setError("");
     try {
       const response = await fetch("/api/business-admin/store-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isOpen: !company.isOpen }),
+        body: JSON.stringify({ isOpen: openingStore }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -314,8 +322,11 @@ products and outlets from one place.
           </section>
         )}
 
-        <BusinessPushNotifications />
-        <BusinessOrderMonitor />
+        <BusinessPushNotifications isOpen={Boolean(company?.isOpen)} />
+        {alertSetupNotice && company?.isOpen && (
+          <p aria-live="polite" className="mt-2 text-sm font-semibold text-blue-800">{alertSetupNotice}</p>
+        )}
+        <BusinessOrderMonitor isOpen={Boolean(company?.isOpen)} />
 
         {/* ERROR */}
         {error && (
