@@ -123,6 +123,7 @@ model Order {
   customerId        String?
   outletId          String
   deliveryAddress   String?
+  customizationNote String?
   customerPhone     String?
   customerName      String?
   customerLatitude  Float?

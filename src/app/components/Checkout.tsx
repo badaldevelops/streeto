@@ -49,6 +49,7 @@ export default function Checkout() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [customizationNote, setCustomizationNote] = useState("");
   const [address, setAddress] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
 const [street, setStreet] = useState("");
@@ -366,6 +367,7 @@ if (orderType === "DELIVERY") {
         body: JSON.stringify({
           customerName: name,
           customerPhone: phone,
+          customizationNote: customizationNote.trim(),
           orderType,
           deliveryAddress:
             orderType === "DELIVERY" ? address : null,
@@ -1035,6 +1037,26 @@ if (orderType === "DELIVERY") {
 
           </div>
         )}
+
+        {/* Optional food customization */}
+        <div className="mt-7 rounded-2xl border border-orange-200 bg-orange-50/60 p-5">
+          <label htmlFor="food-customization" className="block text-base font-extrabold text-gray-900">
+            Customize your food <span className="text-sm font-semibold text-gray-500">(optional)</span>
+          </label>
+          <p className="mt-1 text-sm text-gray-600">
+            Tell the outlet how you’d like it, such as extra spicy or not spicy.
+          </p>
+          <textarea
+            id="food-customization"
+            value={customizationNote}
+            onChange={(event) => setCustomizationNote(event.target.value.slice(0, 500))}
+            maxLength={500}
+            rows={3}
+            placeholder="Write your food preference here…"
+            className="mt-3 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+          />
+          <p className="mt-1 text-right text-xs text-gray-500">{customizationNote.length}/500</p>
+        </div>
 
         {/* Payment */}
         <div className="mt-7 rounded-2xl border border-gray-100 bg-gray-50 p-5">

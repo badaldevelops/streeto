@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       customerPhone,
       orderType,
       deliveryAddress,
+      customizationNote,
         latitude,
   longitude,
       items,
@@ -93,6 +94,17 @@ export async function POST(request: Request) {
         {
           error: "Invalid order type.",
         },
+        { status: 400 }
+      );
+    }
+
+    if (
+      customizationNote !== undefined &&
+      customizationNote !== null &&
+      (typeof customizationNote !== "string" || customizationNote.length > 500)
+    ) {
+      return NextResponse.json(
+        { error: "Food customization notes must be 500 characters or fewer." },
         { status: 400 }
       );
     }
@@ -473,6 +485,10 @@ if (
           deliveryAddress:
             orderType === "DELIVERY"
               ? deliveryAddress.trim()
+              : null,
+          customizationNote:
+            typeof customizationNote === "string" && customizationNote.trim()
+              ? customizationNote.trim()
               : null,
               customerLatitude:
   orderType === "DELIVERY"
