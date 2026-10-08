@@ -24,7 +24,10 @@ export async function sendNewOrderPush(
 ) {
   const privateKey = (env as typeof env & { VAPID_PRIVATE_KEY?: string })
     .VAPID_PRIVATE_KEY;
-  if (!privateKey) return;
+  if (!privateKey) {
+    console.error("Business order push is not configured: VAPID_PRIVATE_KEY is missing.");
+    return;
+  }
 
   try {
     const subscriptions = await prisma.businessPushSubscription.findMany({
@@ -51,7 +54,8 @@ export async function sendNewOrderPush(
                 tag: `streeto-order-${order.id}`,
                 data: { url: "/business-admin" },
               }),
-              options: { ttl: 60 },
+              // Keep a new order queued while a phone is asleep or temporarily offline.
+              options: { ttl: 86400 },
             },
             subscription,
             {

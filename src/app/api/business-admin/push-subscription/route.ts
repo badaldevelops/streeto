@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { env } from "cloudflare:workers";
+
+function isPushConfigured() {
+  return Boolean((env as typeof env & { VAPID_PRIVATE_KEY?: string }).VAPID_PRIVATE_KEY);
+}
 
 function isAllowedEndpoint(endpoint: string) {
   try {
@@ -32,7 +37,7 @@ export async function GET() {
   const count = await prisma.businessPushSubscription.count({
     where: { userId: user.id, companyId: user.companyId! },
   });
-  return NextResponse.json({ enabled: count > 0 });
+  return NextResponse.json({ enabled: count > 0, pushConfigured: isPushConfigured() });
 }
 
 export async function POST(request: Request) {
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, pushConfigured: isPushConfigured() });
   } catch (error) {
     console.error("Save business push subscription error:", error);
     return NextResponse.json({ error: "Unable to enable background alerts." }, { status: 500 });
