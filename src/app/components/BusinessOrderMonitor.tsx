@@ -12,6 +12,7 @@ type IncomingOrder = {
   customerName: string | null;
   customerPhone: string | null;
   deliveryAddress: string | null;
+  customizationNote: string | null;
   outlet: { name: string };
   items: { id: string; quantity: number; totalPrice: number; product: { name: string } }[];
 };
@@ -36,8 +37,13 @@ export default function BusinessOrderMonitor({ isOpen }: { isOpen: boolean }) {
         const next = (data.orders || []).find((order: IncomingOrder & { status: string }) =>
           order.status === "PLACED" && !resolved.current.has(order.id)
         );
-        if (next) setPendingOrder(next);
-        else setPendingOrder(null);
+        setPendingOrder((current) => {
+          if (next) {
+            return current?.id === next.id ? current : next;
+          }
+
+          return current && !resolved.current.has(current.id) ? current : null;
+        });
       } catch (loadError) {
         console.error("Dashboard order monitor failed:", loadError);
       } finally {

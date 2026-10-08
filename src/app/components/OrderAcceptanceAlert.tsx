@@ -40,12 +40,14 @@ export default function OrderAcceptanceAlert({
   const [progress, setProgress] = useState(0);
   const [showCustomizationNote, setShowCustomizationNote] = useState(false);
   const actionStarted = useRef(false);
+  const armedSlide = useRef<"order" | "customization" | null>(null);
   const customerName = order.customerName || "Guest customer";
 
   useEffect(() => {
     setProgress(0);
     setShowCustomizationNote(false);
     actionStarted.current = false;
+    armedSlide.current = null;
   }, [order.id]);
 
   async function acceptOrder() {
@@ -55,6 +57,7 @@ export default function OrderAcceptanceAlert({
 
     if (order.customizationNote?.trim() && !showCustomizationNote) {
       setProgress(0);
+      armedSlide.current = null;
       setShowCustomizationNote(true);
       return;
     }
@@ -69,6 +72,11 @@ export default function OrderAcceptanceAlert({
   }
 
   function changeProgress(value: number) {
+    if (showCustomizationNote && armedSlide.current !== "customization") {
+      setProgress(0);
+      return;
+    }
+
     const next = Math.min(100, Math.max(0, value));
     setProgress(next);
 
@@ -217,6 +225,7 @@ export default function OrderAcceptanceAlert({
               {busy ? "Accepting order…" : showCustomizationNote ? "Slide to confirm & accept" : "Slide to accept"}
             </span>
             <input
+              key={showCustomizationNote ? "customization-slider" : "order-slider"}
               aria-label={showCustomizationNote ? "Slide to confirm food request and accept order" : "Slide to accept order"}
               aria-valuetext={progress === 100 ? "Accepting order" : `${progress}%`}
               className="order-accept-slider absolute inset-0 z-20 h-full w-full disabled:cursor-wait"
@@ -224,6 +233,12 @@ export default function OrderAcceptanceAlert({
               max={100}
               min={0}
               onChange={(event) => changeProgress(event.currentTarget.valueAsNumber)}
+              onKeyDown={() => {
+                armedSlide.current = showCustomizationNote ? "customization" : "order";
+              }}
+              onPointerDown={() => {
+                armedSlide.current = showCustomizationNote ? "customization" : "order";
+              }}
               type="range"
               value={progress}
             />

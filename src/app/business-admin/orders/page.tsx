@@ -16,6 +16,7 @@ type Order = {
   customerName: string | null;
   customerPhone: string | null;
   deliveryAddress: string | null;
+  customizationNote: string | null;
 
   outlet: {
     id: string;
@@ -964,6 +965,18 @@ setPollingEnabled(true);
                         </div>
 
                       </div>
+
+                      {/* Customer food request */}
+                      {order.customizationNote && (
+                        <div className="mt-5 rounded-2xl border-2 border-orange-200 bg-orange-50 p-5">
+                          <p className="text-xs font-black uppercase tracking-wider text-orange-700">
+                            Customer food request
+                          </p>
+                          <p className="mt-2 whitespace-pre-wrap break-words text-sm font-bold leading-6 text-gray-900">
+                            {order.customizationNote}
+                          </p>
+                        </div>
+                      )}
 
                       {/* Address */}
                       {order.deliveryAddress && (

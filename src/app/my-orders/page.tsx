@@ -29,6 +29,7 @@ type Order = {
   deliveryCharge: number;
   total: number;
   deliveryAddress: string | null;
+  customizationNote: string | null;
   createdAt: string;
   items: OrderItem[];
   payment: Payment | null;
@@ -598,6 +599,17 @@ export default function MyOrdersPage() {
 
                           <p className="mt-1 text-sm font-semibold leading-5 text-gray-700">
                             📍 {order.deliveryAddress}
+                          </p>
+                        </div>
+                      )}
+
+                      {order.customizationNote && (
+                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                          <p className="text-xs font-black uppercase tracking-wider text-orange-700">
+                            Your food request
+                          </p>
+                          <p className="mt-2 whitespace-pre-wrap break-words text-sm font-semibold leading-5 text-gray-800">
+                            {order.customizationNote}
                           </p>
                         </div>
                       )}
