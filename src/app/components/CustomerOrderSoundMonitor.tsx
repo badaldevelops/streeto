@@ -12,13 +12,32 @@ import {
 
 type CustomerOrderStatus = {
   id: string;
+  orderNumber: string;
+  type: string;
   status: string;
 };
+
+type ReadyOrderNotice = Pick<CustomerOrderStatus, "id" | "orderNumber" | "type">;
+
+const dismissedReadyOrdersKey = "streeto:ready-orders-dismissed";
+
+function readDismissedReadyOrderIds() {
+  try {
+    const saved = window.localStorage.getItem(dismissedReadyOrdersKey);
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function CustomerOrderSoundMonitor() {
   const trackedOrders = useRef<TrackedCustomerOrder[]>([]);
   const requestInFlight = useRef(false);
   const [isTracking, setIsTracking] = useState(false);
+  const [readyNotification, setReadyNotification] = useState<ReadyOrderNotice | null>(null);
 
   useEffect(() => {
     function enableOnCustomerInteraction() {
@@ -111,6 +130,26 @@ export default function CustomerOrderSoundMonitor() {
             order.status,
           ])
         );
+        const orderDetails = new Map<string, CustomerOrderStatus>(
+          (data.orders as CustomerOrderStatus[]).map((order) => [order.id, order])
+        );
+        const dismissedReadyOrderIds = new Set(readDismissedReadyOrderIds());
+        const readyOrder = checkedOrders
+          .map((tracked) => orderDetails.get(tracked.id))
+          .find(
+            (order) =>
+              order?.status === "READY" &&
+              !dismissedReadyOrderIds.has(order.id)
+          );
+
+        if (readyOrder) {
+          setReadyNotification((current) => current ?? {
+            id: readyOrder.id,
+            orderNumber: readyOrder.orderNumber,
+            type: readyOrder.type,
+          });
+        }
+
         const now = Date.now();
         const maxAge = 7 * 24 * 60 * 60 * 1000;
         const updatedTrackedOrders = trackedOrders.current.flatMap((tracked) => {
@@ -129,9 +168,7 @@ export default function CustomerOrderSoundMonitor() {
           if (!lastStatus) {
             lastStatus = status;
           } else if (lastStatus !== status) {
-            if (!playOrderStatusSound()) {
-              return [tracked];
-            }
+            playOrderStatusSound();
             lastStatus = status;
           }
 
@@ -177,5 +214,67 @@ export default function CustomerOrderSoundMonitor() {
     };
   }, [isTracking]);
 
-  return null;
+  function dismissReadyNotification() {
+    if (!readyNotification) {
+      return;
+    }
+
+    const dismissed = new Set(readDismissedReadyOrderIds());
+    dismissed.add(readyNotification.id);
+    try {
+      window.localStorage.setItem(
+        dismissedReadyOrdersKey,
+        JSON.stringify(Array.from(dismissed).slice(-100))
+      );
+    } catch {
+      // The customer can still dismiss the popup if storage is unavailable.
+    }
+    setReadyNotification(null);
+  }
+
+  return readyNotification ? (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <section
+        aria-labelledby="customer-order-ready-title"
+        aria-modal="true"
+        className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        role="dialog"
+      >
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-6 text-white">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-3xl" aria-hidden="true">
+            ✓
+          </div>
+          <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-emerald-100">
+            Order #{readyNotification.orderNumber}
+          </p>
+          <h2 id="customer-order-ready-title" className="mt-1 text-3xl font-black">
+            Your order is ready!
+          </h2>
+        </div>
+        <div className="p-6">
+          <p className="text-base font-semibold leading-7 text-gray-700">
+            {readyNotification.type === "SELF_RECEIVE"
+              ? "Please collect your order from the outlet. Show your order number when you arrive."
+              : "Your order is ready and will be handed over for delivery shortly."}
+          </p>
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-extrabold text-gray-700 transition hover:bg-gray-50"
+              onClick={dismissReadyNotification}
+              type="button"
+            >
+              Got it
+            </button>
+            <a
+              className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-extrabold text-white transition hover:bg-orange-600"
+              href="/my-orders"
+              onClick={dismissReadyNotification}
+            >
+              View order details
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  ) : null;
 }
