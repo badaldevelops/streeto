@@ -60,13 +60,33 @@ export async function GET(request: Request) {
       );
     }
 
+    const where = {
+      customerId: customer.id,
+      ...(requestedOrderIds
+        ? { id: { in: requestedOrderIds } }
+        : {}),
+    };
+
+    if (requestedOrderIds) {
+      const orders = await prisma.order.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          orderNumber: true,
+          type: true,
+          status: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        orders,
+      });
+    }
+
     const orders = await prisma.order.findMany({
-      where: {
-        customerId: customer.id,
-        ...(requestedOrderIds
-          ? { id: { in: requestedOrderIds } }
-          : {}),
-      },
+      where,
       orderBy: {
         createdAt: "desc",
       },
