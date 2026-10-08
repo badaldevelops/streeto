@@ -14,7 +14,9 @@ self.addEventListener("push", (event) => {
       tag: message.tag || "streeto-new-order",
       renotify: true,
       requireInteraction: true,
-      vibrate: [250, 100, 250, 100, 700],
+      silent: false,
+      vibrate: [800, 200, 800, 200, 1200, 250, 1200],
+      timestamp: Date.now(),
       data: message.data || { url: "/business-admin" },
     })
   );

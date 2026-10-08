@@ -171,7 +171,7 @@ export default function BusinessPushNotifications({ isOpen }: { isOpen: boolean 
   if (state === "checking") guidance = "Checking this device’s alert setup…";
   if (state === "paused") guidance = "Order alerts are paused while your store is closed.";
   if (state === "waiting") guidance = "Order alerts will activate on this device when setup is complete.";
-  if (state === "ready") guidance = "Order alerts are active while your store is open. The phone uses its notification sound and vibration settings.";
+  if (state === "ready") guidance = "Order alerts are active while your store is open. Set StreetO notifications to Alert and raise notification volume in your phone settings for a louder alert.";
   if (state === "blocked") guidance = "Notifications are blocked for this site. Allow them in browser or phone settings, then reopen this dashboard.";
   if (state === "unsupported") {
     const ios = typeof navigator !== "undefined" && isIosDevice();
