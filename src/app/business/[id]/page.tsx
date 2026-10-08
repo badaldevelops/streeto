@@ -41,12 +41,20 @@ if (user?.role === "SUPER_ADMIN") {
     where: {
       id,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      isOpen: true,
       outlets: {
         where: {
           isActive: true,
         },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          deliveryRadiusKm: true,
+          deliveryCharge: true,
           outletProducts: {
             where: {
               isAvailable: true,
@@ -224,11 +232,6 @@ if (user?.role === "SUPER_ADMIN") {
                             </p>
                           )}
 
-                          {outlet.phone && (
-                            <p className="text-sm font-medium text-gray-500">
-                              📞 {outlet.phone}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>

@@ -70,7 +70,6 @@ export async function GET(request: Request) {
         name: true,
         businessType: true,
         address: true,
-        phone: true,
         latitude: true,
         longitude: true,
         deliveryRadiusKm: true,
@@ -123,8 +122,6 @@ export async function GET(request: Request) {
           businessType: outlet.businessType,
 
           address: outlet.address,
-          phone: outlet.phone,
-
           latitude: outlet.latitude,
           longitude: outlet.longitude,
 

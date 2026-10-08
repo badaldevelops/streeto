@@ -46,7 +46,6 @@ export async function GET(request: Request) {
         id: true,
         name: true,
         address: true,
-        phone: true,
         latitude: true,
         longitude: true,
         businessType: true,
@@ -110,8 +109,6 @@ export async function GET(request: Request) {
           company?.name || "Business",
 
         address: outlet.address,
-        phone: outlet.phone,
-
         latitude: outlet.latitude,
         longitude: outlet.longitude,
 

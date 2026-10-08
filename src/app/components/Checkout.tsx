@@ -61,7 +61,6 @@ const [pincode, setPincode] = useState("");
     id: string;
     name: string;
     address: string;
-    phone: string;
     latitude: number;
     longitude: number;
     businessType: string;

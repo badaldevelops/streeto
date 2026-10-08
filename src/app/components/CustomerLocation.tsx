@@ -9,7 +9,6 @@ type NearbyBusiness = {
   companyName: string;
   businessType: string;
   address: string | null;
-  phone: string | null;
   latitude: number;
   longitude: number;
   distanceKm: number;
