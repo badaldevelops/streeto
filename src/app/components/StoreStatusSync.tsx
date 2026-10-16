@@ -36,7 +36,7 @@ export default function StoreStatusSync({
       }
     }
 
-    const timer = window.setInterval(refreshIfChanged, 10_000);
+    const timer = window.setInterval(refreshIfChanged, 30_000);
     return () => window.clearInterval(timer);
   }, [initialSnapshot, router]);
 

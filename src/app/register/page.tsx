@@ -60,7 +60,7 @@ export default function RegisterPage() {
           </div>
           <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.18em] text-orange-700">Customer account</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight text-gray-950">Create your account</h1>
-          <p className="mt-2 text-sm font-medium text-gray-600">Join StreetO to order from nearby businesses.</p>
+          <p className="mt-2 text-sm font-medium text-gray-600">Join Qtoo to order from nearby businesses.</p>
         </div>
 
         <form onSubmit={handleRegister} className="mt-7 space-y-4 sm:mt-8 sm:space-y-5">

@@ -23,6 +23,28 @@ type Stats = {
 type Company = {
   id: string;
   name: string;
+  isActive: boolean;
+  verificationStatus: "PENDING" | "APPROVED";
+};
+
+type BusinessVerificationRequest = {
+  id: string;
+  name: string;
+  foodLicenseNumber: string | null;
+  foodLicenseExpiry: string | null;
+  ownerAadhaarNumber: string | null;
+  ownerAadhaarLast4: string | null;
+  verificationSubmittedAt: string | null;
+  users: Array<{ name: string; email: string; phone: string | null }>;
+  outlets: Array<{ id: string; name: string; city: string | null; locality: string | null; address: string | null; phone: string | null; foodType: string }>;
+};
+
+type FoodLicenseExpiryAlert = {
+  id: string;
+  name: string;
+  foodLicenseExpiry: string;
+  isActive: boolean;
+  daysRemaining: number;
 };
 
 type OutletUser = {
@@ -59,6 +81,12 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [deliveryEnabled, setDeliveryEnabled] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [verificationRequests, setVerificationRequests] = useState<BusinessVerificationRequest[]>([]);
+  const [foodLicenseAlerts, setFoodLicenseAlerts] = useState<FoodLicenseExpiryAlert[]>([]);
+  const [foodLicenseAlertsError, setFoodLicenseAlertsError] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [approvingCompanyId, setApprovingCompanyId] = useState("");
   const [outlets, setOutlets] = useState<Outlet[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -70,20 +98,9 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [outletsError, setOutletsError] = useState("");
 
-  const [businessName, setBusinessName] = useState("");
-  const [businessEmail, setBusinessEmail] = useState("");
-  const [businessPhone, setBusinessPhone] = useState("");
-  const [businessPassword, setBusinessPassword] = useState("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
-
-  const [creatingAdmin, setCreatingAdmin] = useState(false);
-  const [adminMessage, setAdminMessage] = useState("");
-  const [adminError, setAdminError] = useState("");
-
-  const [newBusinessName, setNewBusinessName] = useState("");
-  const [creatingBusiness, setCreatingBusiness] = useState(false);
-  const [businessMessage, setBusinessMessage] = useState("");
-  const [businessError, setBusinessError] = useState("");
+  const [updatingCompanyId, setUpdatingCompanyId] = useState("");
+  const [companyStatusMessage, setCompanyStatusMessage] = useState("");
+  const [companyStatusError, setCompanyStatusError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
@@ -104,7 +121,12 @@ export default function AdminPage() {
           !meData.authenticated ||
           meData.user?.role !== "SUPER_ADMIN"
         ) {
-          router.replace("/");
+          const destination = meData.user?.role === "BUSINESS_ADMIN"
+            ? "https://business.qtoo.in/business-admin"
+            : meData.user?.role === "DELIVERY_STAFF"
+              ? "https://qtoo.in/delivery"
+              : "https://qtoo.in/";
+          window.location.replace(destination);
           return;
         }
 
@@ -114,11 +136,15 @@ export default function AdminPage() {
           statsResponse,
           companiesResponse,
           outletsResponse,
+          verificationResponse,
+          foodLicenseAlertsResponse,
           deliverySettingResponse,
         ] = await Promise.all([
           fetch("/api/admin-stats"),
           fetch("/api/admin/companies"),
           fetch("/api/admin/outlets"),
+          fetch("/api/admin/business-verifications", { cache: "no-store" }),
+          fetch("/api/admin/food-license-expiry", { cache: "no-store" }),
           fetch("/api/admin/delivery-setting", { cache: "no-store" }),
         ]);
 
@@ -143,6 +169,22 @@ export default function AdminPage() {
             };
 
           setCompanies(companiesData.companies || []);
+        }
+
+        if (verificationResponse.ok) {
+          const verificationData = await verificationResponse.json() as { requests?: BusinessVerificationRequest[] };
+          setVerificationRequests(verificationData.requests || []);
+        } else {
+          const data = await verificationResponse.json() as { error?: string };
+          setVerificationError(data.error || "Unable to load business verification requests.");
+        }
+
+        if (foodLicenseAlertsResponse.ok) {
+          const data = await foodLicenseAlertsResponse.json() as { alerts?: FoodLicenseExpiryAlert[] };
+          setFoodLicenseAlerts(data.alerts || []);
+        } else {
+          const data = await foodLicenseAlertsResponse.json() as { error?: string };
+          setFoodLicenseAlertsError(data.error || "Unable to load food licence expiry alerts.");
         }
 
         if (outletsResponse.ok) {
@@ -214,7 +256,7 @@ export default function AdminPage() {
       setDeliveryEnabled(data.deliveryEnabled === true);
       setDeliverySettingMessage(data.deliveryEnabled
         ? "Delivery is now available to customers."
-        : "Customers can now choose Self Receive only.");
+        : "Customers can choose Self Receive or Dine In at checkout.");
     } catch (error) {
       console.error("Update delivery setting failed:", error);
       setDeliverySettingError("Unable to update delivery setting.");
@@ -223,121 +265,63 @@ export default function AdminPage() {
     }
   }
 
-  async function handleCreateBusiness(
-    event: React.FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
+  async function toggleCompanyStatus(company: Company) {
+    const nextIsActive = !company.isActive;
+    if (!nextIsActive && !window.confirm(`Deactivate ${company.name}? Its admins will lose access and customers will no longer see or order from its outlets.`)) {
+      return;
+    }
 
-    setCreatingBusiness(true);
-    setBusinessMessage("");
-    setBusinessError("");
-
+    setUpdatingCompanyId(company.id);
+    setCompanyStatusMessage("");
+    setCompanyStatusError("");
     try {
       const response = await fetch("/api/admin/companies", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: newBusinessName,
-        }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: company.id, isActive: nextIsActive }),
       });
-
-      const data = (await response.json()) as {
-        success?: boolean;
-        company?: Company;
-        error?: string;
-      };
-
+      const result = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setBusinessError(
-          data.error || "Unable to create business."
-        );
+        setCompanyStatusError(result.error || "Could not update business status.");
         return;
       }
 
-      if (data.company) {
-        setCompanies((current) =>
-          [...current, data.company!].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
-        );
-
-        setSelectedCompanyId(data.company.id);
-      }
-
-      setBusinessMessage(
-        "Business created successfully."
-      );
-
-      setNewBusinessName("");
+      setCompanies((current) => current.map((item) => item.id === company.id
+        ? { ...item, isActive: nextIsActive }
+        : item));
+      setCompanyStatusMessage(`${company.name} is now ${nextIsActive ? "active" : "deactivated"}.`);
     } catch (error) {
-      console.error(error);
-
-      setBusinessError(
-        "Unable to create business."
-      );
+      console.error("Update business status failed:", error);
+      setCompanyStatusError("Could not update business status.");
     } finally {
-      setCreatingBusiness(false);
+      setUpdatingCompanyId("");
     }
   }
 
-  async function handleCreateBusinessAdmin(
-    event: React.FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    setCreatingAdmin(true);
-    setAdminMessage("");
-    setAdminError("");
-
+  async function approveBusiness(request: BusinessVerificationRequest) {
+    setApprovingCompanyId(request.id);
+    setVerificationError("");
+    setVerificationMessage("");
     try {
-      const response = await fetch(
-        "/api/admin/business-admin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: businessName,
-            email: businessEmail,
-            phone: businessPhone,
-            password: businessPassword,
-            companyId: selectedCompanyId,
-          }),
-        }
-      );
-
-      const data = (await response.json()) as {
-        error?: string;
-      };
-
+      const response = await fetch("/api/admin/business-verifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: request.id }),
+      });
+      const data = await response.json() as { error?: string };
       if (!response.ok) {
-        setAdminError(
-          data.error ||
-            "Unable to create Business Admin."
-        );
+        setVerificationError(data.error || "Unable to approve this business.");
         return;
       }
-
-      setAdminMessage(
-        "Business Admin created successfully."
-      );
-
-      setBusinessName("");
-      setBusinessEmail("");
-      setBusinessPhone("");
-      setBusinessPassword("");
-      setSelectedCompanyId("");
-    } catch (error) {
-      console.error(error);
-
-      setAdminError(
-        "Unable to create Business Admin."
-      );
+      setVerificationRequests((current) => current.filter((item) => item.id !== request.id));
+      setCompanies((current) => current.map((company) => company.id === request.id
+        ? { ...company, isActive: true, verificationStatus: "APPROVED" }
+        : company));
+      setVerificationMessage(`${request.name} is verified and active. The full Aadhaar number has been cleared.`);
+    } catch {
+      setVerificationError("Unable to approve this business. Try again.");
     } finally {
-      setCreatingAdmin(false);
+      setApprovingCompanyId("");
     }
   }
 
@@ -518,6 +502,51 @@ export default function AdminPage() {
           </div>
         </section>
 
+        <section className="admin-section" aria-labelledby="food-license-expiry-title">
+          <p className="admin-section-label">Business compliance</p>
+          <h2 id="food-license-expiry-title" className="admin-section-title">Food licence expiry <span className="ml-2 rounded-full bg-amber-100 px-2.5 py-1 align-middle text-sm text-amber-900">{foodLicenseAlerts.length}</span></h2>
+          <p className="admin-section-description">Approved businesses with a food licence that has expired or expires within 30 days.</p>
+          {foodLicenseAlertsError && <div role="alert" className="admin-alert admin-alert-error">{foodLicenseAlertsError}</div>}
+          {!foodLicenseAlertsError && foodLicenseAlerts.length === 0 && <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">No approved business licences are expired or expiring in the next 30 days.</p>}
+          <div className="mt-4 space-y-3">
+            {foodLicenseAlerts.map((alert) => {
+              const expired = alert.daysRemaining < 0;
+              const expiryText = expired
+                ? `Expired ${Math.abs(alert.daysRemaining)} ${Math.abs(alert.daysRemaining) === 1 ? "day" : "days"} ago`
+                : alert.daysRemaining === 0
+                  ? "Expires today"
+                  : `Expires in ${alert.daysRemaining} ${alert.daysRemaining === 1 ? "day" : "days"}`;
+              return (
+                <article key={alert.id} role="alert" className={`rounded-xl border p-4 ${expired ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-extrabold text-gray-950">{alert.name}{!alert.isActive && <span className="ml-2 text-xs font-bold text-gray-500">Inactive</span>}</p>
+                    <p className={`text-sm font-extrabold ${expired ? "text-red-800" : "text-amber-900"}`}>{expiryText}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-700">Expiry date: {new Date(alert.foodLicenseExpiry).toLocaleDateString("en-IN", { timeZone: "UTC" })}</p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="admin-section flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="admin-section-label">Platform Earnings</p>
+            <h2 className="admin-section-title">Outlet commission ledger</h2>
+            <p className="admin-section-description">See commission due by business and record UPI payments you have received.</p>
+          </div>
+          <button type="button" onClick={() => router.push("/admin/commissions")} className="admin-button">Open Commission Ledger →</button>
+        </section>
+
+        <section className="admin-section flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="admin-section-label">Outlet payouts</p>
+            <h2 className="admin-section-title">All outlet settlements</h2>
+            <p className="admin-section-description">See each outlet’s pending amount, recorded transfers, and paid-order details.</p>
+          </div>
+          <button type="button" onClick={() => router.push("/admin/settlements")} className="admin-button">Open Settlements →</button>
+        </section>
+
         <section className="admin-section">
           <p className="admin-section-label">Order Options</p>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -525,8 +554,8 @@ export default function AdminPage() {
               <h2 className="admin-section-title">Customer Delivery</h2>
               <p className="admin-section-description">
                 {deliveryEnabled
-                  ? "Customers can choose Delivery or Self Receive at checkout."
-                  : "Delivery is off. Customers can place Self Receive orders only."}
+                  ? "Customers can choose Delivery, Self Receive or Dine In at checkout."
+                  : "Delivery is off. Customers can choose Self Receive or Dine In at checkout."}
               </p>
             </div>
             <button
@@ -550,198 +579,51 @@ export default function AdminPage() {
           )}
         </section>
 
-        {/* CREATE BUSINESS */}
         <section className="admin-section">
-          <p className="admin-section-label">
-            Business Management
-          </p>
-
-          <h2 className="admin-section-title">
-            Create Business
-          </h2>
-
-          <p className="admin-section-description">
-            Create a new business that can later have
-            outlets, products and a Business Admin.
-          </p>
-
-          <form
-            onSubmit={handleCreateBusiness}
-            className="admin-form admin-form-business"
-          >
-            <div className="admin-field">
-              <label htmlFor="new-business-name">
-                Business Name
-              </label>
-
-              <input
-                id="new-business-name"
-                type="text"
-                value={newBusinessName}
-                onChange={(event) =>
-                  setNewBusinessName(event.target.value)
-                }
-                placeholder="Enter business name"
-                required
-                className="admin-input"
-              />
-            </div>
-
-            <div className="admin-submit-wrap">
-              <button
-                type="submit"
-                disabled={creatingBusiness}
-                className="admin-button"
-              >
-                {creatingBusiness
-                  ? "Creating..."
-                  : "Create Business"}
-              </button>
-            </div>
-          </form>
-
-          {businessMessage && (
-            <div className="admin-alert admin-alert-success">
-              {businessMessage}
-            </div>
-          )}
-
-          {businessError && (
-            <div className="admin-alert admin-alert-error">
-              {businessError}
-            </div>
-          )}
+          <p className="admin-section-label">Business onboarding</p>
+          <h2 className="admin-section-title">Verification requests <span className="ml-2 rounded-full bg-orange-100 px-2.5 py-1 align-middle text-sm text-orange-800">{verificationRequests.length}</span></h2>
+          <p className="admin-section-description">Review the owner, outlet, food licence and Aadhaar details before activating a new business.</p>
+          {verificationMessage && <div role="status" className="admin-alert admin-alert-success">{verificationMessage}</div>}
+          {verificationError && <div role="alert" className="admin-alert admin-alert-error">{verificationError}</div>}
+          <div className="mt-5 space-y-4">
+            {verificationRequests.map((request) => {
+              const owner = request.users[0];
+              return (
+                <article key={request.id} className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div><p className="text-xs font-extrabold uppercase tracking-wide text-amber-700">Pending approval</p><h3 className="mt-1 text-xl font-black text-gray-950">{request.name}</h3></div>
+                    <p className="text-xs font-semibold text-gray-500">Submitted {request.verificationSubmittedAt ? new Date(request.verificationSubmittedAt).toLocaleString("en-IN") : "date unavailable"}</p>
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl bg-gray-50 p-3"><p className="text-xs font-extrabold uppercase text-gray-500">Business owner</p><p className="mt-2 font-bold text-gray-900">{owner?.name || "Name unavailable"}</p><p className="mt-1 text-sm text-gray-700">{owner?.email || "Email unavailable"}</p><p className="text-sm text-gray-700">{owner?.phone || "Phone unavailable"}</p></div>
+                    <div className="rounded-xl bg-gray-50 p-3"><p className="text-xs font-extrabold uppercase text-gray-500">Food licence</p><p className="mt-2 break-all font-bold text-gray-900">{request.foodLicenseNumber || "Not provided"}</p><p className="mt-1 text-sm text-gray-700">Expires: {request.foodLicenseExpiry ? new Date(request.foodLicenseExpiry).toLocaleDateString("en-IN") : "Not provided"}</p></div>
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-3 sm:col-span-2"><p className="text-xs font-extrabold uppercase text-red-800">Owner Aadhaar · restricted verification data</p><p className="mt-2 break-all font-mono text-lg font-bold tracking-wider text-gray-950">{request.ownerAadhaarNumber || (request.ownerAadhaarLast4 ? `Unavailable · ending ${request.ownerAadhaarLast4}` : "Unavailable")}</p>{!request.ownerAadhaarNumber && <p className="mt-1 text-xs text-red-700">The number could not be decrypted. Check the business verification encryption secret before approval.</p>}</div>
+                    {request.outlets.map((outlet) => <div key={outlet.id} className="rounded-xl bg-gray-50 p-3 sm:col-span-2"><p className="text-xs font-extrabold uppercase text-gray-500">Outlet details</p><p className="mt-2 font-bold text-gray-900">{outlet.name} · {outlet.foodType}</p><p className="mt-1 text-sm text-gray-700">{[outlet.locality, outlet.city].filter(Boolean).join(", ")}</p><p className="mt-1 text-sm leading-5 text-gray-700">{outlet.address || "Address unavailable"}</p><p className="mt-1 text-sm text-gray-700">{outlet.phone || "Outlet phone unavailable"}</p></div>)}
+                  </div>
+                  <button type="button" onClick={() => void approveBusiness(request)} disabled={approvingCompanyId === request.id || !request.ownerAadhaarNumber} className="mt-5 min-h-11 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50">{approvingCompanyId === request.id ? "Approving…" : "Approve and activate business"}</button>
+                </article>
+              );
+            })}
+            {!verificationRequests.length && !verificationError && <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No business verification requests are waiting.</p>}
+          </div>
         </section>
 
-        {/* CREATE BUSINESS ADMIN */}
         <section className="admin-section">
-          <p className="admin-section-label">
-            Account Management
-          </p>
-
-          <h2 className="admin-section-title">
-            Create Business Admin
-          </h2>
-
-          <p className="admin-section-description">
-            Create a Business Admin account for an
-            existing business.
-          </p>
-
-          <form
-            onSubmit={handleCreateBusinessAdmin}
-            className="admin-form admin-form-admin"
-          >
-            <div className="admin-field">
-              <label>Name</label>
-
-              <input
-                type="text"
-                value={businessName}
-                onChange={(event) =>
-                  setBusinessName(event.target.value)
-                }
-                required
-                placeholder="Business Admin name"
-                className="admin-input"
-              />
-            </div>
-
-            <div className="admin-field">
-              <label>Business</label>
-
-              <select
-                value={selectedCompanyId}
-                onChange={(event) =>
-                  setSelectedCompanyId(event.target.value)
-                }
-                required
-                className="admin-select"
-              >
-                <option value="">
-                  Select business
-                </option>
-
-                {companies.map((company) => (
-                  <option
-                    key={company.id}
-                    value={company.id}
-                  >
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="admin-field">
-              <label>Email</label>
-
-              <input
-                type="email"
-                value={businessEmail}
-                onChange={(event) =>
-                  setBusinessEmail(event.target.value)
-                }
-                required
-                placeholder="admin@example.com"
-                className="admin-input"
-              />
-            </div>
-
-            <div className="admin-field">
-              <label>Phone</label>
-
-              <input
-                type="tel"
-                value={businessPhone}
-                onChange={(event) =>
-                  setBusinessPhone(event.target.value)
-                }
-                placeholder="10 digit phone"
-                className="admin-input"
-              />
-            </div>
-
-            <div className="admin-field">
-              <label>Password</label>
-
-              <input
-                type="password"
-                value={businessPassword}
-                onChange={(event) =>
-                  setBusinessPassword(event.target.value)
-                }
-                required
-                minLength={8}
-                placeholder="Minimum 8 characters"
-                className="admin-input"
-              />
-            </div>
-
-            <div className="admin-submit-wrap">
-              <button
-                type="submit"
-                disabled={creatingAdmin}
-                className="admin-button"
-              >
-                {creatingAdmin
-                  ? "Creating..."
-                  : "Create Business Admin"}
-              </button>
-            </div>
-          </form>
-
-          {adminMessage && (
-            <div className="admin-alert admin-alert-success">
-              {adminMessage}
-            </div>
-          )}
-
-          {adminError && (
-            <div className="admin-alert admin-alert-error">
-              {adminError}
-            </div>
-          )}
+          <p className="admin-section-label">Business access</p>
+          <h2 className="admin-section-title">Manage active businesses</h2>
+          <p className="admin-section-description">Deactivate or reactivate businesses that have already passed verification.</p>
+          {companyStatusMessage && <div className="admin-alert admin-alert-success">{companyStatusMessage}</div>}
+          {companyStatusError && <div className="admin-alert admin-alert-error">{companyStatusError}</div>}
+          <div className="mt-4 space-y-3">
+            {companies.map((company) => {
+              const pending = company.verificationStatus === "PENDING";
+              return <div key={company.id} className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="font-extrabold text-gray-900">{company.name}</p><p className={`mt-1 text-xs font-bold ${pending ? "text-amber-700" : company.isActive ? "text-emerald-700" : "text-red-600"}`}>{pending ? "Verification pending" : company.isActive ? "Active" : "Deactivated"}</p></div>
+                <button type="button" onClick={() => void toggleCompanyStatus(company)} disabled={pending || updatingCompanyId === company.id} className={`rounded-xl px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50 ${company.isActive ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>{pending ? "Review request above" : updatingCompanyId === company.id ? "Saving…" : company.isActive ? "Deactivate business" : "Activate business"}</button>
+              </div>;
+            })}
+            {!companies.length && <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No businesses have been registered yet.</p>}
+          </div>
         </section>
 
         {/* PLATFORM MANAGEMENT */}

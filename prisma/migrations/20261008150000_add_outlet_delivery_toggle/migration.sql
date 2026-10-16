@@ -1,0 +1,2 @@
+ALTER TABLE "Outlet"
+ADD COLUMN "deliveryEnabled" BOOLEAN NOT NULL DEFAULT false;

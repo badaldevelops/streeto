@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import OrderAcceptanceAlert from "@/app/components/OrderAcceptanceAlert";
+
+const seenOrdersKey = "streeto:business-alerts-seen-orders";
 
 type IncomingOrder = {
   id: string;
@@ -9,40 +11,42 @@ type IncomingOrder = {
   type: string;
   total: number;
   createdAt: string;
-  customerName: string | null;
-  customerPhone: string | null;
-  deliveryAddress: string | null;
+  queueNumber: number | null;
   customizationNote: string | null;
   outlet: { name: string };
   items: { id: string; quantity: number; totalPrice: number; product: { name: string } }[];
 };
 
-export default function BusinessOrderMonitor({ isOpen }: { isOpen: boolean }) {
+export default function BusinessOrderMonitor() {
   const [pendingOrder, setPendingOrder] = useState<IncomingOrder | null>(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const resolved = useRef(new Set<string>());
+  const seenOrderIds = useRef(new Set<string>());
 
   useEffect(() => {
     let stopped = false;
     let inFlight = false;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(seenOrdersKey) || "[]");
+      if (Array.isArray(saved)) {
+        seenOrderIds.current = new Set(saved.filter((id): id is string => typeof id === "string"));
+      }
+    } catch {
+      seenOrderIds.current = new Set();
+    }
+
     const load = async () => {
       if (inFlight || document.visibilityState !== "visible") return;
       inFlight = true;
       try {
-        const response = await fetch("/api/business-admin/orders", { cache: "no-store" });
+        const response = await fetch("/api/business-admin/orders?pending=1", { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         if (stopped) return;
         const next = (data.orders || []).find((order: IncomingOrder & { status: string }) =>
-          order.status === "PLACED" && !resolved.current.has(order.id)
+          ["ACCEPTED", "PREPARING", "READY"].includes(order.status) &&
+          !seenOrderIds.current.has(order.id)
         );
         setPendingOrder((current) => {
-          if (next) {
-            return current?.id === next.id ? current : next;
-          }
-
-          return current && !resolved.current.has(current.id) ? current : null;
+          return current || next || null;
         });
       } catch (loadError) {
         console.error("Dashboard order monitor failed:", loadError);
@@ -50,40 +54,41 @@ export default function BusinessOrderMonitor({ isOpen }: { isOpen: boolean }) {
         inFlight = false;
       }
     };
+    const refreshForPaidOrder = (event: MessageEvent) => {
+      if (event.data?.type === "QTOO_NEW_ORDER_PAID") void load();
+    };
     void load();
     const timer = window.setInterval(() => void load(), 4000);
-    return () => { stopped = true; window.clearInterval(timer); };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+    navigator.serviceWorker?.addEventListener("message", refreshForPaidOrder);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+      navigator.serviceWorker?.removeEventListener("message", refreshForPaidOrder);
+    };
   }, []);
 
-  async function update(status: "ACCEPTED" | "CANCELLED") {
-    if (!pendingOrder || busy) return false;
-    setBusy(true);
-    setError("");
+  const dismiss = useCallback(() => {
+    if (!pendingOrder) return;
+    seenOrderIds.current.add(pendingOrder.id);
     try {
-      const response = await fetch("/api/business-admin/orders/status", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: pendingOrder.id, status }),
-      });
-      const data = await response.json();
-      if (!response.ok) { setError(data.error || "Could not update the order."); return false; }
-      resolved.current.add(pendingOrder.id);
-      setPendingOrder(null);
-      return true;
+      window.localStorage.setItem(seenOrdersKey, JSON.stringify(Array.from(seenOrderIds.current).slice(-200)));
     } catch {
-      setError("Could not update the order. Please try again.");
-      return false;
-    } finally {
-      setBusy(false);
+      // The current page can still dismiss alerts when storage is unavailable.
     }
-  }
+    setPendingOrder(null);
+  }, [pendingOrder]);
 
   if (!pendingOrder) return null;
   return <OrderAcceptanceAlert
     order={pendingOrder}
-    busy={busy}
-    soundActive={isOpen}
-    error={error}
-    onAccept={() => update("ACCEPTED")}
-    onReject={() => update("CANCELLED")}
+    soundActive
+    onDismiss={dismiss}
   />;
 }

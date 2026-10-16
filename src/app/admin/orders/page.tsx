@@ -258,7 +258,7 @@ export default function AdminOrdersPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-500">
-              MR DABS ADMIN
+              Qtoo Admin
             </p>
 
             <h1 className="mt-1 text-3xl font-bold">
@@ -326,10 +326,10 @@ export default function AdminOrdersPage() {
                 <div className="flex flex-wrap items-center gap-2">
 
                   <div className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold">
-                    {order.status}
+                    {order.payment?.status === "PAID" ? order.status : `PAYMENT ${order.payment?.status || "PENDING"}`}
                   </div>
 
-                  {[
+                  {order.payment?.status === "PAID" && [
                     "ACCEPTED",
                     "PREPARING",
                     "READY",
@@ -413,7 +413,7 @@ export default function AdminOrdersPage() {
                     Type:{" "}
                     {order.type === "DELIVERY"
                       ? "Delivery"
-                      : "Self Receive"}
+                      : order.type === "DINE_IN" ? "Dine In" : "Self Receive"}
                   </p>
 
                   <p className="text-sm text-gray-600">

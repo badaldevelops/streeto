@@ -5,13 +5,17 @@ import { getCurrentUser } from "@/lib/auth";
 
 type OutletData = {
   name?: string;
+  city?: string | null;
+  locality?: string | null;
   address?: string | null;
   phone?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   deliveryRadiusKm?: number;
   deliveryCharge?: number;
+  deliveryEnabled?: boolean;
   businessType?: string;
+  foodType?: string;
   locationUpdatedAt?: Date | null;
   isActive?: boolean;
 };
@@ -22,6 +26,12 @@ function normalizeBusinessType(value: unknown) {
   }
 
   return "FIXED_SHOP";
+}
+
+function normalizeFoodType(value: unknown) {
+  return value === "VEG" || value === "NON_VEG" || value === "BOTH"
+    ? value
+    : null;
 }
 
 function parseCoordinate(
@@ -131,163 +141,89 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Please login first." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Please login first." }, { status: 401 });
     }
 
     if (user.role !== "BUSINESS_ADMIN") {
-      return NextResponse.json(
-        { error: "Access denied." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
     }
 
     if (!user.companyId) {
-      return NextResponse.json(
-        { error: "Business is not assigned." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Business is not assigned." }, { status: 400 });
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
-
-const status = body.status;
-
-    const name =
-      typeof body.name === "string"
-        ? body.name.trim()
-        : "";
-
-    const address =
-      typeof body.address === "string"
-        ? body.address.trim()
-        : null;
-
-    const phone =
-      typeof body.phone === "string"
-        ? body.phone.trim()
-        : null;
-
-    const deliveryRadiusKm =
-      Number(body.deliveryRadiusKm);
-
-    const deliveryCharge =
-      Number(body.deliveryCharge);
-
-    const businessType =
-      normalizeBusinessType(body.businessType);
-
-    const latitude = parseCoordinate(
-      body.latitude
-    );
-
-    const longitude = parseCoordinate(
-      body.longitude
-    );
-
+    const body = await request.json() as Record<string, unknown>;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
     if (!name) {
-      return NextResponse.json(
-        { error: "Outlet name is required." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Outlet name is required." }, { status: 400 });
+    }
+    const city = typeof body.city === "string" ? body.city.trim() : "";
+    const locality = typeof body.locality === "string" ? body.locality.trim() : "";
+    if (!city || !locality || city.length > 100 || locality.length > 100) {
+      return NextResponse.json({ error: "Enter the outlet city and locality (up to 100 characters each)." }, { status: 400 });
     }
 
-    if (
-      !Number.isFinite(deliveryRadiusKm) ||
-      deliveryRadiusKm <= 0
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Delivery radius must be greater than 0.",
-        },
-        { status: 400 }
-      );
+    const foodType = normalizeFoodType(body.foodType);
+    if (!foodType) {
+      return NextResponse.json({ error: "Choose whether the outlet sells veg, non-veg, or both." }, { status: 400 });
     }
 
-    if (
-      !Number.isFinite(deliveryCharge) ||
-      deliveryCharge < 0
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Delivery charge cannot be negative.",
-        },
-        { status: 400 }
-      );
+    const deliveryRadiusKm = Number(body.deliveryRadiusKm);
+    const deliveryCharge = Number(body.deliveryCharge);
+    if (!Number.isFinite(deliveryRadiusKm) || deliveryRadiusKm <= 0) {
+      return NextResponse.json({ error: "Delivery radius must be greater than 0." }, { status: 400 });
+    }
+    if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0) {
+      return NextResponse.json({ error: "Delivery charge cannot be negative." }, { status: 400 });
+    }
+    if (body.deliveryEnabled !== undefined && typeof body.deliveryEnabled !== "boolean") {
+      return NextResponse.json({ error: "Delivery must be switched on or off." }, { status: 400 });
     }
 
-    if (
-      latitude === "invalid" ||
-      longitude === "invalid"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Latitude and longitude must be valid numbers.",
-        },
-        { status: 400 }
-      );
+    const latitude = parseCoordinate(body.latitude);
+    const longitude = parseCoordinate(body.longitude);
+    if (latitude === "invalid" || longitude === "invalid") {
+      return NextResponse.json({ error: "Latitude and longitude must be valid numbers." }, { status: 400 });
     }
-
-    const coordinateError =
-      validateCoordinates(
-        latitude,
-        longitude
-      );
-
+    const coordinateError = validateCoordinates(latitude, longitude);
     if (coordinateError) {
-      return NextResponse.json(
-        { error: coordinateError },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: coordinateError }, { status: 400 });
     }
 
-    const outlet =
-      await prisma.outlet.create({
+    const outlet = await prisma.$transaction(async (tx) => {
+      const existingCount = await tx.outlet.count({ where: { companyId: user.companyId! } });
+      if (existingCount > 0) {
+        throw new Error("OUTLET_LIMIT_REACHED");
+      }
+
+      return tx.outlet.create({
         data: {
+          companyId: user.companyId!,
           name,
-          address: address || null,
-          phone: phone || null,
+          city,
+          locality,
+          address: typeof body.address === "string" ? body.address.trim() || null : null,
+          phone: typeof body.phone === "string" ? body.phone.trim() || null : null,
           latitude,
           longitude,
+          locationUpdatedAt: latitude !== null && longitude !== null ? new Date() : null,
           deliveryRadiusKm,
           deliveryCharge,
-          businessType,
-          locationUpdatedAt:
-            latitude !== null &&
-            longitude !== null
-              ? new Date()
-              : null,
-          isActive: true,
-          companyId: user.companyId,
+          deliveryEnabled: body.deliveryEnabled === true,
+          businessType: normalizeBusinessType(body.businessType),
+          foodType,
         },
       });
+    }, { isolationLevel: "Serializable" });
 
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          "Outlet created successfully.",
-        outlet,
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, outlet }, { status: 201 });
   } catch (error) {
-    console.error(
-      "Business Admin create outlet error:",
-      error
-    );
+    if (error instanceof Error && error.message === "OUTLET_LIMIT_REACHED") {
+      return NextResponse.json({ error: "Only one outlet is allowed for this business." }, { status: 409 });
+    }
 
-    return NextResponse.json(
-      {
-        error: "Unable to create outlet.",
-      },
-      { status: 500 }
-    );
+    console.error("Business Admin create outlet error:", error);
+    return NextResponse.json({ error: "Unable to create outlet." }, { status: 500 });
   }
 }
 
@@ -376,6 +312,20 @@ export async function PATCH(request: Request) {
           : null;
     }
 
+    if (body.city !== undefined) {
+      if (typeof body.city !== "string" || body.city.trim().length > 100) {
+        return NextResponse.json({ error: "City must be 100 characters or fewer." }, { status: 400 });
+      }
+      data.city = body.city.trim() || null;
+    }
+
+    if (body.locality !== undefined) {
+      if (typeof body.locality !== "string" || body.locality.trim().length > 100) {
+        return NextResponse.json({ error: "Locality must be 100 characters or fewer." }, { status: 400 });
+      }
+      data.locality = body.locality.trim() || null;
+    }
+
     if (body.phone !== undefined) {
       data.phone =
         typeof body.phone === "string"
@@ -388,6 +338,14 @@ export async function PATCH(request: Request) {
         normalizeBusinessType(
           body.businessType
         );
+    }
+
+    if (body.foodType !== undefined) {
+      const foodType = normalizeFoodType(body.foodType);
+      if (!foodType) {
+        return NextResponse.json({ error: "Choose whether the outlet sells veg, non-veg, or both." }, { status: 400 });
+      }
+      data.foodType = foodType;
     }
 
     if (
@@ -438,6 +396,16 @@ export async function PATCH(request: Request) {
 
       data.deliveryCharge =
         deliveryCharge;
+    }
+
+    if (body.deliveryEnabled !== undefined) {
+      if (typeof body.deliveryEnabled !== "boolean") {
+        return NextResponse.json(
+          { error: "Delivery must be switched on or off." },
+          { status: 400 }
+        );
+      }
+      data.deliveryEnabled = body.deliveryEnabled;
     }
 
     let locationWasUpdated = false;
@@ -541,6 +509,13 @@ export async function PATCH(request: Request) {
         },
         data,
       });
+
+    if (data.foodType === "VEG" || data.foodType === "NON_VEG") {
+      await prisma.outletProduct.updateMany({
+        where: { outletId: existingOutlet.id },
+        data: { isVeg: data.foodType === "VEG" },
+      });
+    }
 
     return NextResponse.json({
       success: true,

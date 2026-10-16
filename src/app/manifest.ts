@@ -2,13 +2,18 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "StreetO Business",
-    short_name: "StreetO",
-    description: "Manage StreetO orders and your business.",
-    start_url: "/business-admin",
+    name: "Qtoo",
+    short_name: "Qtoo",
+    description: "Order food from nearby businesses with Qtoo.",
+    start_url: "/",
     display: "standalone",
-    background_color: "#fff8f2",
-    theme_color: "#f97316",
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+    scope: "/",
+    background_color: "#f7f8f4",
+    theme_color: "#f3222b",
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
   };
 }

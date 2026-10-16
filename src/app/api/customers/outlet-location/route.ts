@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -18,15 +18,10 @@ export async function GET(request: Request) {
     }
 
     // First find which outlet this cart item belongs to.
-    const outletProduct =
-      await prisma.outletProduct.findUnique({
-        where: {
-          id: outletProductId,
-        },
-        select: {
-          outletId: true,
-        },
-      });
+    const outletProduct = await prisma.outletProduct.findUnique({
+      where: { id: outletProductId },
+      select: { outletId: true },
+    });
 
     if (!outletProduct) {
       return NextResponse.json(
@@ -52,6 +47,8 @@ export async function GET(request: Request) {
         locationUpdatedAt: true,
         isActive: true,
         companyId: true,
+        gstin: true,
+        deliveryEnabled: true,
       },
     });
 
@@ -94,7 +91,21 @@ export async function GET(request: Request) {
       select: {
         id: true,
         name: true,
+        isActive: true,
       },
+    });
+
+    if (!company?.isActive) {
+      return NextResponse.json(
+        { error: "This business is currently unavailable." },
+        { status: 404 }
+      );
+    }
+
+    const requestedIds = searchParams.getAll("outletProductId").filter(Boolean);
+    const taxProducts = await prisma.outletProduct.findMany({
+      where: { id: { in: requestedIds }, outletId: outlet.id },
+      select: { id: true, sgstRate: true, cgstRate: true },
     });
 
     return NextResponse.json({
@@ -107,12 +118,14 @@ export async function GET(request: Request) {
         companyId: outlet.companyId,
         companyName:
           company?.name || "Business",
-
         address: outlet.address,
         latitude: outlet.latitude,
         longitude: outlet.longitude,
 
         businessType: outlet.businessType,
+        gstin: outlet.gstin,
+        deliveryEnabled: outlet.deliveryEnabled,
+        taxProducts,
         locationUpdatedAt:
           outlet.locationUpdatedAt,
       },

@@ -9,8 +9,8 @@ if (!secret) {
 
 const secretKey = new TextEncoder().encode(secret);
 
-export async function createSession(userId: string) {
-  return await new SignJWT({ userId })
+export async function createSession(userId: string, sessionVersion = 0) {
+  return await new SignJWT({ userId, sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
@@ -25,7 +25,10 @@ export async function verifySession(token: string) {
       return null;
     }
 
-    return payload.userId;
+    return {
+      userId: payload.userId,
+      sessionVersion: typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0,
+    };
   } catch {
     return null;
   }

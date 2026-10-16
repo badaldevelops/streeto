@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./components/CartProvider";
 import CustomerOrderSoundMonitor from "./components/CustomerOrderSoundMonitor";
@@ -10,21 +10,50 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Local Food | Fresh food from nearby businesses",
-  description: "Discover nearby food businesses, explore their menus, and order for self receive or delivery where available.",
+  metadataBase: new URL("https://qtoo.in"),
+  title: {
+    default: "Qtoo | Good food. Less wait.",
+    template: "%s | Qtoo",
+  },
+  applicationName: "Qtoo",
+  manifest: "/manifest.webmanifest?v=3",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon.png", sizes: "512x512", type: "image/png" }],
+  },
+  appleWebApp: {
+    title: "Qtoo",
+    capable: true,
+    statusBarStyle: "default",
+  },
+  description: "Discover local food outlets, browse menus, and order ahead for self receive or dine in with Qtoo.",
+  openGraph: {
+    type: "website",
+    siteName: "Qtoo",
+    title: "Qtoo | Good food. Less wait.",
+    description: "Discover local food outlets, browse menus, and order ahead for pickup or dine in.",
+    url: "https://qtoo.in",
+  },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#f3222b",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
   <CartProvider>

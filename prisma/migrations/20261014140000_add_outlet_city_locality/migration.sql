@@ -1,0 +1,3 @@
+ALTER TABLE "Outlet"
+ADD COLUMN "city" TEXT,
+ADD COLUMN "locality" TEXT;

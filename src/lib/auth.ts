@@ -10,15 +10,15 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const userId = await verifySession(sessionToken);
+  const session = await verifySession(sessionToken);
 
-  if (!userId) {
+  if (!session) {
     return null;
   }
 
   const user = await prisma.user.findUnique({
     where: {
-      id: userId,
+      id: session.userId,
     },
     select: {
       id: true,
@@ -27,8 +27,24 @@ export async function getCurrentUser() {
       phone: true,
       role: true,
       companyId: true,
+      sessionVersion: true,
+      company: {
+        select: { isActive: true },
+      },
     },
   });
 
-  return user;
+  if (
+    !user ||
+    user.sessionVersion !== session.sessionVersion ||
+    (user.role === "BUSINESS_ADMIN" && !user.company?.isActive)
+  ) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    companyId: user.companyId,
+  };
 }

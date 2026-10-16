@@ -27,6 +27,7 @@ export default function AddToCartButton({
     items,
     addItem,
     decreaseItem,
+    openCart,
   } = useCart();
 
   const item = items.find(
@@ -52,15 +53,18 @@ export default function AddToCartButton({
     return (
       <button
         onClick={() =>
-          addItem({
-            productId,
-            productName,
-            price,
-            companyId,
-            companyName,
-            outletId,
-            outletName,
-          })
+          {
+            addItem({
+              productId,
+              productName,
+              price,
+              companyId,
+              companyName,
+              outletId,
+              outletName,
+            });
+            openCart();
+          }
         }
         className="mt-5 w-full rounded-xl bg-black px-4 py-3 font-semibold text-white transition hover:bg-gray-800"
       >

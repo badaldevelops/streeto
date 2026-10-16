@@ -1,6 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="28" fill="#f97316"/>
-  <path d="M24 54h80l-8 48H32l-8-48Z" fill="#fff"/>
-  <path d="M38 54c0-17 11-30 26-30s26 13 26 30" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="9"/>
-  <path d="M45 73h38" stroke="#f97316" stroke-linecap="round" stroke-width="8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="4" x2="116" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6A3517"/>
+      <stop offset="1" stop-color="#170E0A"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path d="M20 38 10 28M23 52 8 50M108 34l10-10" stroke="#FFC52E" stroke-width="5" stroke-linecap="round"/>
+  <text x="12" y="112" fill="#171717" stroke="#171717" stroke-width="14" paint-order="stroke" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="108" font-weight="900" letter-spacing="-9">Q</text>
+  <text x="12" y="112" fill="#fff" stroke="#fff" stroke-width="8" paint-order="stroke" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="108" font-weight="900" letter-spacing="-9">Q</text>
+  <text x="12" y="112" fill="#F3222B" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="108" font-weight="900" letter-spacing="-9">Q</text>
+  <path d="M34 43c-9-2-14-10-11-18 3-8 10-12 19-9 2-9 11-15 20-13 8 1 13 7 14 14 9-3 18 2 19 11 1 7-3 13-10 16L34 43Z" fill="#fff" stroke="#171717" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M33 34c12-4 26-5 42-2" stroke="#171717" stroke-width="4" stroke-linecap="round"/>
 </svg>

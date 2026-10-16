@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type User = {
   id: string;
@@ -23,27 +24,26 @@ export default function LoginPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [appKind, setAppKind] = useState<"customer" | "business" | "admin" | null>(null);
 
   function redirectByRole(role: string) {
-    if (role === "SUPER_ADMIN") {
-      router.replace("/admin");
-      return;
-    }
+    const host = window.location.hostname;
+    const currentApp = host === "admin.qtoo.in" ? "admin" : host === "business.qtoo.in" ? "business" : "customer";
 
-    if (role === "BUSINESS_ADMIN") {
-      router.replace("/business-admin");
-      return;
+    if (currentApp === "business" && role === "BUSINESS_ADMIN") router.replace("/business-admin");
+    else if (currentApp === "admin" && role === "SUPER_ADMIN") router.replace("/admin");
+    else if (currentApp === "customer" && role === "CUSTOMER") router.replace("/");
+    else if (currentApp === "customer" && role === "DELIVERY_STAFF") router.replace("/delivery");
+    else {
+      setUser(null);
+      setMessage("This account can only be used in its own Qtoo app.");
     }
-
-    if (role === "DELIVERY_STAFF") {
-      router.replace("/delivery");
-      return;
-    }
-
-    router.replace("/");
   }
 
   useEffect(() => {
+    const host = window.location.hostname;
+    setAppKind(host === "admin.qtoo.in" ? "admin" : host === "business.qtoo.in" ? "business" : "customer");
+
     async function checkSession() {
       try {
         const response = await fetch("/api/me");
@@ -86,6 +86,11 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
+          expectedRole: appKind === "business"
+            ? "BUSINESS_ADMIN"
+            : appKind === "admin"
+              ? "SUPER_ADMIN"
+              : ["CUSTOMER", "DELIVERY_STAFF"],
         }),
       });
 
@@ -149,7 +154,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md rounded-3xl border border-orange-100 bg-white p-6 text-gray-900 shadow-lg shadow-orange-950/5 sm:p-8">
           <div className="text-center">
             <h1 className="text-3xl font-black text-gray-950">
-              MR DABS
+              Qtoo
             </h1>
 
             <p className="mt-2 font-medium text-gray-600">
@@ -198,11 +203,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-3xl border border-orange-100 bg-white p-6 text-gray-900 shadow-lg shadow-orange-950/5 sm:p-8">
         <div className="text-center">
           <h1 className="text-3xl font-black text-gray-950">
-            MR DABS
+            Qtoo
           </h1>
 
           <p className="mt-2 font-medium text-gray-600">
-            Login to your account
+              {appKind === "business" ? "Business owner login" : appKind === "admin" ? "Super Admin login" : "Login to your account"}
           </p>
         </div>
 
@@ -265,6 +270,12 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div className="-mt-2 text-right">
+            <Link href="/forgot-password" className="text-sm font-bold text-orange-700 underline underline-offset-2 hover:text-red-700">
+              Forgot password?
+            </Link>
+          </div>
+
           {message && (
             <div className="rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-800">
               {message}
@@ -282,15 +293,21 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm font-medium text-gray-700">
-          Don&apos;t have an account?{" "}
-          <a
-            href="/register"
-            className="font-bold text-orange-700 underline decoration-2 underline-offset-2 hover:text-red-700"
-          >
-            Create Account
-          </a>
-        </p>
+        {appKind === "business" ? (
+          <p className="mt-6 text-center text-sm font-medium text-gray-700">
+            <>
+              New to Qtoo?{" "}
+              <Link href="/business-register" className="font-bold text-orange-700 underline decoration-2 underline-offset-2 hover:text-red-700">Register your business</Link>
+            </>
+          </p>
+        ) : appKind === "customer" ? (
+          <p className="mt-6 text-center text-sm font-medium text-gray-700">
+            <>
+              Don&apos;t have a customer account?{" "}
+              <Link href="/register" className="font-bold text-orange-700 underline decoration-2 underline-offset-2 hover:text-red-700">Create Account</Link>
+            </>
+          </p>
+        ) : null}
       </div>
     </main>
   );

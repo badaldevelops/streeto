@@ -16,6 +16,8 @@ type OutletUser = {
 type Outlet = {
   id: string;
   name: string;
+  city?: string | null;
+  locality?: string | null;
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -33,29 +35,6 @@ type Outlet = {
     users: number;
   };
 };
-
-function getCity(outlet: Outlet) {
-  const address = outlet.address?.trim();
-
-  if (!address) {
-    return "Unknown";
-  }
-
-  const parts = address
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length > 1) {
-    return parts[parts.length - 1];
-  }
-
-  const words = address
-    .split(/\s+/)
-    .filter(Boolean);
-
-  return words[words.length - 1] || "Unknown";
-}
 
 function normalizeCity(value: string) {
   return decodeURIComponent(value)
@@ -78,6 +57,7 @@ export default function AdminCityOutletsPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedLocality, setSelectedLocality] = useState("");
 
   useEffect(() => {
     async function loadOutlets() {
@@ -114,13 +94,12 @@ export default function AdminCityOutletsPage() {
         const cityOutlets =
           allOutlets.filter((outlet) => {
             return (
-              normalizeCity(
-                getCity(outlet)
-              ) === selectedCity
+              normalizeCity(outlet.city?.trim() || "City not set") === selectedCity
             );
           });
 
         setOutlets(cityOutlets);
+        setSelectedLocality("");
       } catch (error) {
         console.error(
           "Load city outlets error:",
@@ -139,6 +118,16 @@ export default function AdminCityOutletsPage() {
       loadOutlets();
     }
   }, [cityParam]);
+
+  const localities = useMemo(
+    () => Array.from(new Set(outlets.map((outlet) => outlet.locality?.trim()).filter((locality): locality is string => Boolean(locality)))).sort((a, b) => a.localeCompare(b)),
+    [outlets]
+  );
+  const visibleOutlets = selectedLocality
+    ? selectedLocality === "__unset"
+      ? outlets.filter((outlet) => !outlet.locality?.trim())
+      : outlets.filter((outlet) => outlet.locality?.trim() === selectedLocality)
+    : outlets;
 
   if (loading) {
     return (
@@ -218,11 +207,11 @@ export default function AdminCityOutletsPage() {
               </h1>
 
               <p className="mt-2 text-gray-600">
-                {outlets.length}{" "}
-                {outlets.length === 1
+                {visibleOutlets.length}{" "}
+                {visibleOutlets.length === 1
                   ? "outlet"
                   : "outlets"}{" "}
-                in {cityName}.
+                {selectedLocality && selectedLocality !== "__unset" ? `in ${selectedLocality}, ` : "in "}{cityName}.
               </p>
 
             </div>
@@ -236,11 +225,22 @@ export default function AdminCityOutletsPage() {
 
           </div>
 
+          {localities.length > 0 && (
+            <label className="mt-5 block max-w-sm text-sm font-bold text-gray-700">
+              Filter by locality
+              <select value={selectedLocality} onChange={(event) => setSelectedLocality(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3">
+                <option value="">All localities</option>
+                {localities.map((locality) => <option key={locality} value={locality}>{locality}</option>)}
+                {outlets.some((outlet) => !outlet.locality?.trim()) && <option value="__unset">Locality not set</option>}
+              </select>
+            </label>
+          )}
+
         </div>
 
         {/* NO OUTLETS */}
 
-        {outlets.length === 0 ? (
+        {visibleOutlets.length === 0 ? (
           <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
 
             <h2 className="text-xl font-semibold">
@@ -258,7 +258,7 @@ export default function AdminCityOutletsPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-            {outlets.map((outlet) => {
+            {visibleOutlets.map((outlet) => {
 
               const adminUser =
                 outlet.users?.find(
@@ -315,6 +315,9 @@ export default function AdminCityOutletsPage() {
                       📍{" "}
                       {outlet.address ||
                         "Address not available"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-gray-700">
+                      {outlet.city || "City not set"} · {outlet.locality || "Locality not set"}
                     </p>
 
                     {outlet.latitude != null &&

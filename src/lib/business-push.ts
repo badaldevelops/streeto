@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { prisma } from "@/lib/prisma";
 import { VAPID_PUBLIC_KEY } from "@/lib/push-vapid-public";
 
-const vapidSubject = "https://streeto.badaldevelops.workers.dev";
+const vapidSubject = "https://qtoo.in";
 
 function allowedPushEndpoint(endpoint: string) {
   try {
@@ -55,8 +55,8 @@ export async function sendNewOrderPush(
           const payload = await buildPushPayload(
             {
               data: JSON.stringify({
-                title: "New StreetO order",
-                body: `Order #${order.orderNumber} · ₹${order.total.toFixed(0)}. Tap to review and accept.`,
+                title: "New Qtoo order",
+                body: `Payment received. Order #${order.orderNumber} · ₹${order.total.toFixed(0)} is confirmed.`,
                 tag: `streeto-order-${order.id}`,
                 data: { url: "/business-admin" },
               }),

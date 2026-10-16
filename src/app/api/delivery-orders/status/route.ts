@@ -53,12 +53,22 @@ export async function PATCH(request: Request) {
         orderId,
         deliveryStaffId: user.id,
       },
+      include: {
+        order: { select: { payment: { select: { method: true, status: true } } } },
+      },
     });
 
     if (!delivery) {
       return NextResponse.json(
         { error: "Delivery order not found." },
         { status: 404 }
+      );
+    }
+
+    if (delivery.order.payment?.method === "ONLINE" && delivery.order.payment.status !== "PAID") {
+      return NextResponse.json(
+        { error: "Cashfree must confirm payment before delivery can proceed." },
+        { status: 409 }
       );
     }
 

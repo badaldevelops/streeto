@@ -808,12 +808,6 @@ export default function DeliveryStaffPage() {
                 and assign them to an outlet.
               </p>
 
-              <button
-                onClick={openCreateForm}
-                className="mt-6 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
-              >
-                + Add Your First Staff
-              </button>
             </div>
           )}
 

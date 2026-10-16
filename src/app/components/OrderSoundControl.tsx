@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { enableOrderSounds, playNewOrderSound } from "@/lib/order-notifications";
 
-const adminSoundPreferenceKey = "streeto:admin-order-sound-enabled";
-
 export default function OrderSoundControl({ active }: { active: boolean }) {
   const [enabled, setEnabled] = useState(false);
 
@@ -15,23 +13,24 @@ export default function OrderSoundControl({ active }: { active: boolean }) {
       return;
     }
 
-    async function activateFromSavedGesture() {
-      let saved = false;
-      try {
-        saved = window.sessionStorage.getItem(adminSoundPreferenceKey) === "true";
-      } catch {
-        // Sound remains unavailable if the browser blocks session storage.
-      }
-      if (!saved) return;
+    async function activate() {
       const ready = await enableOrderSounds();
       if (!cancelled) setEnabled(ready);
     }
-    const onAudioReady = () => { void activateFromSavedGesture(); };
+    const onAudioReady = () => { void activate(); };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void activate();
+    };
     window.addEventListener("streeto:business-audio-ready", onAudioReady);
-    void activateFromSavedGesture();
+    window.addEventListener("focus", onAudioReady);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    // Attempt playback setup as soon as the incoming-order popup mounts.
+    void activate();
     return () => {
       cancelled = true;
       window.removeEventListener("streeto:business-audio-ready", onAudioReady);
+      window.removeEventListener("focus", onAudioReady);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [active]);
 
@@ -43,5 +42,5 @@ export default function OrderSoundControl({ active }: { active: boolean }) {
   }, [active, enabled]);
 
   if (!active || !enabled) return null;
-  return <p className="text-center text-xs font-semibold text-gray-500">Phone style alert rings until you accept or reject.</p>;
+  return <p className="text-center text-xs font-semibold text-gray-500">Order alert sound will ring while this confirmed-order popup is open.</p>;
 }

@@ -5,11 +5,9 @@ import {
   enableOrderSounds,
   trackCustomerOrderForConfirmation,
 } from "@/lib/order-notifications";
+import CashfreePayButton from "./CashfreePayButton";
 
 import { useCart } from "./CartProvider";
-import GoogleLocationPicker from "./GoogleLocationPicker";
-
-
 
 type User = {
   id: string;
@@ -19,19 +17,14 @@ type User = {
   role: string;
 };
 
-type SavedAddress = {
-  id: string;
-  label: string;
-  fullName: string;
-  phone: string;
-  addressLine: string;
-  landmark: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  isDefault: boolean;
+type PendingCashfreePayment = {
+  paymentSessionId: string;
+  cashfreeMode: "sandbox" | "production";
+  orderNumber: string;
+  amount: number;
 };
 
-export default function Checkout() {
+export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }) {
   const {
     items,
     cartTotal,
@@ -42,65 +35,33 @@ export default function Checkout() {
   
   
 
-  const [orderType, setOrderType] = useState<
-    "DELIVERY" | "SELF_RECEIVE"
-  >("SELF_RECEIVE");
-  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
+  const [orderType, setOrderType] = useState<"SELF_RECEIVE" | "DINE_IN">("SELF_RECEIVE");
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [customizationNote, setCustomizationNote] = useState("");
-  const [address, setAddress] = useState("");
-  const [houseNumber, setHouseNumber] = useState("");
-const [street, setStreet] = useState("");
-const [locality, setLocality] = useState("");
-const [city, setCity] = useState("");
-const [pincode, setPincode] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-  const [locationStatus, setLocationStatus] = useState("");
-    const [outletLocation, setOutletLocation] = useState<{
-    id: string;
-    name: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    businessType: string;
-    companyName: string;
+  const [outletLocation, setOutletLocation] = useState<{
+    gstin?: string | null;
+    taxProducts?: { id: string; sgstRate: number; cgstRate: number }[];
   } | null>(null);
-
-  const [loadingOutletLocation, setLoadingOutletLocation] =
-    useState(false);
-
-  const [outletLocationError, setOutletLocationError] =
-    useState("");
 
   useEffect(() => {
     async function loadOutletLocation() {
-      const outletProductId = items[0]?.productId;
+      const outletProductIds = items.map((item) => item.productId);
 
-      if (!outletProductId) {
+      if (!outletProductIds.length) {
         return;
       }
 
-      setLoadingOutletLocation(true);
-      setOutletLocationError("");
-
       try {
-        const response = await fetch(
-          `/api/customers/outlet-location?outletProductId=${encodeURIComponent(
-            outletProductId
-          )}`
-        );
+        const params = new URLSearchParams();
+        outletProductIds.forEach((id) => params.append("outletProductId", id));
+        const response = await fetch(`/api/customers/outlet-location?${params.toString()}`);
 
         const data = await response.json();
 
         if (!response.ok) {
           setOutletLocation(null);
-          setOutletLocationError(
-            data.error ||
-              "Unable to load outlet location."
-          );
           return;
         }
 
@@ -112,106 +73,34 @@ const [pincode, setPincode] = useState("");
         );
 
         setOutletLocation(null);
-        setOutletLocationError(
-          "Unable to load outlet location."
-        );
-      } finally {
-        setLoadingOutletLocation(false);
       }
     }
 
     loadOutletLocation();
   }, [items]);
 
-  const [savedAddresses, setSavedAddresses] = useState<
-    SavedAddress[]
-  >([]);
-  const [loadingAddresses, setLoadingAddresses] =
-    useState(false);
-  const [selectedAddressId, setSelectedAddressId] =
-    useState("");
+  const checkoutSgst = outletLocation?.gstin
+    ? items.reduce((sum, item) => {
+        const rates = outletLocation.taxProducts?.find((entry) => entry.id === item.productId);
+        return sum + Math.round(item.price * item.quantity * (rates?.sgstRate ?? 0)) / 100;
+      }, 0)
+    : 0;
+  const checkoutCgst = outletLocation?.gstin
+    ? items.reduce((sum, item) => {
+        const rates = outletLocation.taxProducts?.find((entry) => entry.id === item.productId);
+        return sum + Math.round(item.price * item.quantity * (rates?.cgstRate ?? 0)) / 100;
+      }, 0)
+    : 0;
+  const checkoutTaxTotal = (Math.round(checkoutSgst * 100) + Math.round(checkoutCgst * 100)) / 100;
+  const checkoutTotal = cartTotal + checkoutTaxTotal;
 
   const [user, setUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] =
     useState(true);
   const [placingOrder, setPlacingOrder] =
     useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/delivery-availability", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) return false;
-        const data = await response.json();
-        return data.deliveryEnabled === true;
-      })
-      .then((enabled) => {
-        if (!cancelled) setDeliveryEnabled(enabled);
-      })
-      .catch((error) => {
-        console.error("Load delivery availability failed:", error);
-        if (!cancelled) setDeliveryEnabled(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    async function loadSavedAddresses() {
-      setLoadingAddresses(true);
-
-      try {
-        const response = await fetch("/api/addresses");
-
-        if (!response.ok) {
-          return;
-        }
-
-        const data = await response.json();
-        const addresses = data.addresses || [];
-
-        setSavedAddresses(addresses);
-
-        const defaultAddress = addresses.find(
-          (item: SavedAddress) => item.isDefault
-        );
-
-        if (defaultAddress) {
-          setSelectedAddressId(defaultAddress.id);
-          setName(defaultAddress.fullName);
-          setPhone(defaultAddress.phone);
-
-          const completeAddress =
-            defaultAddress.landmark
-              ? `${defaultAddress.addressLine}, ${defaultAddress.landmark}`
-              : defaultAddress.addressLine;
-
-          setAddress(completeAddress);
-          setLatitude(defaultAddress.latitude);
-          setLongitude(defaultAddress.longitude);
-
-          if (
-            defaultAddress.latitude !== null &&
-            defaultAddress.longitude !== null
-          ) {
-            setLocationStatus(
-              `✅ Saved location selected: ${defaultAddress.latitude.toFixed(
-                6
-              )}, ${defaultAddress.longitude.toFixed(6)}`
-            );
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Unable to load saved addresses:",
-          error
-        );
-      } finally {
-        setLoadingAddresses(false);
-      }
-    }
-
-    loadSavedAddresses();
-  }, []);
+  const [pendingCashfreePayment, setPendingCashfreePayment] =
+    useState<PendingCashfreePayment | null>(null);
 
   useEffect(() => {
     async function loadCustomer() {
@@ -226,6 +115,17 @@ const [pincode, setPincode] = useState("");
         const data = await response.json();
 
         if (data.authenticated) {
+          if (data.user?.role !== "CUSTOMER") {
+            const destination = data.user?.role === "SUPER_ADMIN"
+              ? "https://admin.qtoo.in/admin"
+              : data.user?.role === "BUSINESS_ADMIN"
+                ? "https://business.qtoo.in/business-admin"
+                : data.user?.role === "DELIVERY_STAFF"
+                  ? "https://qtoo.in/delivery"
+                  : "https://qtoo.in/login";
+            window.location.replace(destination);
+            return;
+          }
           setUser(data.user);
           setName(data.user.name || "");
           setPhone(data.user.phone || "");
@@ -240,69 +140,6 @@ const [pincode, setPincode] = useState("");
 
     loadCustomer();
   }, []);
-
-  function getCurrentLocation() {
-    if (!navigator.geolocation) {
-      setLocationStatus(
-        "❌ Your browser does not support location."
-      );
-      return;
-    }
-
-    setLocationStatus("📍 Detecting your location...");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude);
-        setLongitude(position.coords.longitude);
-
-        setLocationStatus(
-          `✅ Location detected: ${position.coords.latitude.toFixed(
-            6
-          )}, ${position.coords.longitude.toFixed(6)}`
-        );
-      },
-      (error) => {
-        console.error("Location error:", error);
-
-        setLocationStatus(
-          `❌ Location error: ${error.code} - ${error.message}`
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      }
-    );
-  }
-
-  function selectSavedAddress(savedAddress: SavedAddress) {
-    setSelectedAddressId(savedAddress.id);
-    setName(savedAddress.fullName);
-    setPhone(savedAddress.phone);
-
-    const completeAddress = savedAddress.landmark
-      ? `${savedAddress.addressLine}, ${savedAddress.landmark}`
-      : savedAddress.addressLine;
-
-    setAddress(completeAddress);
-    setLatitude(savedAddress.latitude);
-    setLongitude(savedAddress.longitude);
-
-    if (
-      savedAddress.latitude !== null &&
-      savedAddress.longitude !== null
-    ) {
-      setLocationStatus(
-        `✅ Saved location selected: ${savedAddress.latitude.toFixed(
-          6
-        )}, ${savedAddress.longitude.toFixed(6)}`
-      );
-    } else {
-      setLocationStatus("");
-    }
-  }
 
   async function handleCheckout() {
     if (checkingSession) {
@@ -335,26 +172,6 @@ const [pincode, setPincode] = useState("");
       return;
     }
 
-    if (
-  orderType === "DELIVERY" &&
-  (
-    !houseNumber.trim() ||
-    !street.trim() ||
-    !locality.trim() ||
-    !city.trim() ||
-    !pincode.trim()
-  )
-) {
-  alert("Please complete your delivery address.");
-  return;
-}
-
-if (orderType === "DELIVERY") {
-  setAddress(
-    `${houseNumber.trim()}, ${street.trim()}, ${locality.trim()}, ${city.trim()} - ${pincode.trim()}`
-  );
-}    
-
     await enableOrderSounds();
     setPlacingOrder(true);
 
@@ -368,13 +185,11 @@ if (orderType === "DELIVERY") {
           customerName: name,
           customerPhone: phone,
           customizationNote: customizationNote.trim(),
-          orderType,
-          deliveryAddress:
-            orderType === "DELIVERY" ? address : null,
-          latitude:
-            orderType === "DELIVERY" ? latitude : null,
-          longitude:
-            orderType === "DELIVERY" ? longitude : null,
+            orderType,
+            pickupOnly,
+            deliveryAddress: null,
+            latitude: null,
+            longitude: null,
           items: items.map((item) => ({
             outletProductId: item.productId,
             quantity: item.quantity,
@@ -389,17 +204,42 @@ if (orderType === "DELIVERY") {
         return;
       }
 
-      trackCustomerOrderForConfirmation(data.order.id);
-
-      alert(
-        `Order placed successfully!\nOrder Number: ${data.order.orderNumber}`
-      );
+      if (!data.paymentSessionId || (data.cashfreeMode !== "sandbox" && data.cashfreeMode !== "production")) {
+        alert("Cashfree did not return a secure payment session. Please try again.");
+        return;
+      }
+      trackCustomerOrderForConfirmation(data.order.id, data.order.status);
+      setPendingCashfreePayment({
+        paymentSessionId: data.paymentSessionId,
+        cashfreeMode: data.cashfreeMode,
+        orderNumber: data.order.orderNumber,
+        amount: Number(data.order.total),
+      });
     } catch (error) {
       console.error(error);
       alert("Something went wrong. Please try again.");
     } finally {
       setPlacingOrder(false);
     }
+  }
+
+  if (pendingCashfreePayment) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-10 sm:py-16">
+        <section className="rounded-3xl border border-green-100 bg-white p-5 shadow-xl sm:p-8">
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 text-3xl" aria-hidden="true">₹</div>
+            <p className="mt-4 text-sm font-bold uppercase tracking-wide text-orange-700">Checkout</p>
+            <h1 className="mt-1 text-2xl font-black text-gray-950">Choose a payment option</h1>
+            <p className="mt-2 text-sm text-gray-600">Order {pendingCashfreePayment.orderNumber} · ₹{pendingCashfreePayment.amount.toFixed(2)}</p>
+          </div>
+
+          <CashfreePayButton paymentSessionId={pendingCashfreePayment.paymentSessionId} mode={pendingCashfreePayment.cashfreeMode} autoStart />
+
+          <p className="mt-4 text-center text-xs text-gray-500">Your available payment options are opening. Your order is confirmed after payment is verified.</p>
+        </section>
+      </main>
+    );
   }
 
   if (cartCount === 0) {
@@ -409,87 +249,21 @@ if (orderType === "DELIVERY") {
   return (
     <div className="mt-8 overflow-hidden rounded-[28px] border border-orange-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-500 to-red-500 px-5 py-7 text-white sm:px-8">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur">
-            🛒
-          </div>
-
+      <div className="p-4 sm:p-7">
+        <div className="mb-5 flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
           <div>
-            <p className="text-sm font-medium text-orange-100">
-              Almost there!
-            </p>
-
-            <h2 className="text-2xl font-extrabold sm:text-3xl">
-              Complete Your Order
-            </h2>
-
-            <p className="mt-1 text-sm text-orange-100">
-              Fresh food, made for you ❤️
-            </p>
+            <h2 className="text-xl font-extrabold text-gray-950 sm:text-2xl">Checkout</h2>
+            {cartOutletName && <p className="mt-1 text-sm text-gray-500">{cartCompanyName?.trim().toLowerCase() === cartOutletName.trim().toLowerCase() ? cartOutletName : `${cartCompanyName} · ${cartOutletName}`}</p>}
           </div>
+          <span className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{cartCount} {cartCount === 1 ? "item" : "items"}</span>
         </div>
-      </div>
-
-      <div className="p-5 sm:p-8">
-
-        {/* Ordering From */}
-        {cartCompanyName && cartOutletName && (
-          <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4 sm:p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-                🏪
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-orange-600">
-                  Ordering From
-                </p>
-
-                <p className="mt-1 text-lg font-extrabold text-gray-900">
-                  {cartCompanyName}
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-gray-600">
-                  📍 {cartOutletName}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Account */}
-        <div className="mt-5">
+        <div>
           {checkingSession ? (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <span className="mr-2">⏳</span>
-              Checking your account...
-            </div>
+            <p className="mb-4 text-sm text-gray-500">Checking your account…</p>
           ) : user ? (
-            <div className="flex items-center gap-4 rounded-2xl border border-green-100 bg-green-50 p-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100 text-xl">
-                👤
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-green-700">
-                  Logged in as
-                </p>
-
-                <p className="font-bold text-gray-900">
-                  {user.name}
-                </p>
-
-                <p className="text-sm text-gray-600">
-                  {user.phone}
-                </p>
-              </div>
-
-              <div className="ml-auto text-xl">
-                ✓
-              </div>
-            </div>
+            null
           ) : (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-5">
               <p className="font-bold text-gray-900">
@@ -510,197 +284,32 @@ if (orderType === "DELIVERY") {
         </div>
 
         {/* Order Type */}
-        <div className="mt-7">
-          <div className="mb-3">
-            <p className="text-lg font-extrabold text-gray-900">
-              How would you like to receive it?
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {deliveryEnabled
-                ? "Choose delivery or collect it yourself."
-                : "Self Receive is currently available."}
-            </p>
-          </div>
-
-          <div className={`grid gap-3 ${deliveryEnabled ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
-
-            {deliveryEnabled && <button
-              type="button"
-              onClick={() => setOrderType("DELIVERY")}
-              className={`relative overflow-hidden rounded-2xl border-2 p-5 text-left transition ${
-                orderType === "DELIVERY"
-                  ? "border-orange-500 bg-orange-50 shadow-md"
-                  : "border-gray-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
-              }`}
-            >
-              {orderType === "DELIVERY" && (
-                <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
-                  ✓
-                </span>
-              )}
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${
-                    orderType === "DELIVERY"
-                      ? "bg-orange-500 text-white"
-                      : "bg-orange-100"
-                  }`}
-                >
-                  🚚
-                </div>
-
-                <div>
-                  <p className="font-extrabold text-gray-900">
-                    Delivery
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    Get it delivered to your door
-                  </p>
-                </div>
-              </div>
-            </button>}
-
+        <fieldset className="mt-5">
+          <legend className="mb-2 text-sm font-extrabold text-gray-900">How would you like to enjoy your order?</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
+              aria-pressed={orderType === "SELF_RECEIVE"}
               onClick={() => setOrderType("SELF_RECEIVE")}
-              className={`relative overflow-hidden rounded-2xl border-2 p-5 text-left transition ${
-                orderType === "SELF_RECEIVE"
-                  ? "border-orange-500 bg-orange-50 shadow-md"
-                  : "border-gray-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
-              }`}
+              className={`rounded-2xl border p-4 text-left transition ${orderType === "SELF_RECEIVE" ? "border-green-600 bg-green-50 ring-2 ring-green-100" : "border-gray-200 bg-white hover:border-green-300"}`}
             >
-              {orderType === "SELF_RECEIVE" && (
-                <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
-                  ✓
-                </span>
-              )}
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${
-                    orderType === "SELF_RECEIVE"
-                      ? "bg-orange-500 text-white"
-                      : "bg-orange-100"
-                  }`}
-                >
-                  🏪
-                </div>
-
-                <div>
-                  <p className="font-extrabold text-gray-900">
-                    Self Receive
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    Collect your order from outlet
-                  </p>
-                </div>
-              </div>
+              <span className="block text-base font-extrabold text-gray-950">🏪 Self Receive</span>
+              <span className="mt-1 block text-sm text-gray-600">Order ahead and collect it from the outlet.</span>
             </button>
-
+            <button
+              type="button"
+              aria-pressed={orderType === "DINE_IN"}
+              onClick={() => setOrderType("DINE_IN")}
+              className={`rounded-2xl border p-4 text-left transition ${orderType === "DINE_IN" ? "border-orange-500 bg-orange-50 ring-2 ring-orange-100" : "border-gray-200 bg-white hover:border-orange-300"}`}
+            >
+              <span className="block text-base font-extrabold text-gray-950">🍽️ Dine In</span>
+              <span className="mt-1 block text-sm text-gray-600">Order ahead and enjoy your food at the outlet.</span>
+            </button>
           </div>
-        </div>
+        </fieldset>
 
-                {/* Self Receive Outlet Location */}
-        {orderType === "SELF_RECEIVE" && (
-          <div className="mt-7 overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-red-50 shadow-sm">
-            <div className="p-5 sm:p-6">
-              <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-md">
-                  📍
-                </div>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-orange-600">
-                    Pickup Location
-                  </p>
-
-                  <h3 className="mt-1 text-xl font-extrabold text-gray-900">
-                    {loadingOutletLocation
-                      ? "Loading outlet..."
-                      : outletLocation?.name ||
-                        cartOutletName ||
-                        "Outlet"}
-                  </h3>
-
-                  {outletLocation?.companyName && (
-                    <p className="mt-1 text-sm font-semibold text-gray-600">
-                      {outletLocation.companyName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {loadingOutletLocation ? (
-                <div className="mt-5 flex items-center gap-3 rounded-2xl border border-orange-100 bg-white p-4">
-                  <span className="animate-spin text-xl">
-                    ⏳
-                  </span>
-
-                  <p className="text-sm font-semibold text-gray-600">
-                    Loading exact outlet location...
-                  </p>
-                </div>
-              ) : outletLocationError ? (
-                <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
-                  <p className="text-sm font-bold text-red-700">
-                    ⚠️ {outletLocationError}
-                  </p>
-                </div>
-              ) : outletLocation ? (
-                <>
-                  <div className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-                    <GoogleLocationPicker
-                      latitude={outletLocation.latitude}
-                      longitude={outletLocation.longitude}
-                      onLocationChange={() => {}}
-                    />
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-orange-100 bg-white p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-lg">
-                        🏪
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-sm font-extrabold text-gray-900">
-                          {outletLocation.name}
-                        </p>
-
-                        {outletLocation.address && (
-                          <p className="mt-1 text-sm leading-5 text-gray-600">
-                            {outletLocation.address}
-                          </p>
-                        )}
-
-                        <p className="mt-2 text-xs font-semibold text-green-600">
-                          ✓ Exact outlet location
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${outletLocation.latitude},${outletLocation.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-5 py-3.5 text-sm font-extrabold text-white shadow-md shadow-orange-200 transition hover:from-orange-600 hover:to-red-600"
-                  >
-                    🗺️ Open Directions in Google Maps
-                  </a>
-                </>
-              ) : null}
-            </div>
-          </div>
-        )}
-        
-        
         {/* Customer Details */}
-        <div className="mt-7 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 sm:p-6">
+        <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 sm:p-5">
           <div className="mb-5">
             <p className="text-lg font-extrabold text-gray-900">
               👤 Your Details
@@ -753,297 +362,12 @@ if (orderType === "DELIVERY") {
           </div>
         </div>
 
-        {/* Delivery */}
-        {orderType === "DELIVERY" && (
-          <div className="mt-7">
-
-            <div className="mb-4">
-              <p className="text-lg font-extrabold text-gray-900">
-                📍 Delivery Details
-              </p>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Choose a saved address or select your exact location.
-              </p>
-            </div>
-
-            {/* Saved Addresses */}
-            {savedAddresses.length > 0 && (
-              <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4 sm:p-5">
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-extrabold text-gray-900">
-                      Saved Addresses
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-500">
-                      Tap an address to use it
-                    </p>
-                  </div>
-
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-                    📍
-                  </div>
-                </div>
-
-                {loadingAddresses ? (
-                  <div className="mt-4 rounded-xl bg-white p-4 text-sm text-gray-500">
-                    Loading saved addresses...
-                  </div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {savedAddresses.map((savedAddress) => (
-                      <button
-                        key={savedAddress.id}
-                        type="button"
-                        onClick={() =>
-                          selectSavedAddress(savedAddress)
-                        }
-                        className={`relative w-full rounded-2xl border-2 p-4 text-left transition ${
-                          selectedAddressId === savedAddress.id
-                            ? "border-orange-500 bg-white shadow-md"
-                            : "border-white bg-white hover:border-orange-200"
-                        }`}
-                      >
-                        {selectedAddressId ===
-                          savedAddress.id && (
-                          <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
-                            ✓
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-3 pr-8">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-lg">
-                            {savedAddress.label
-                              .toLowerCase()
-                              .includes("home")
-                              ? "🏠"
-                              : "📍"}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-extrabold text-gray-900">
-                                {savedAddress.label}
-                              </span>
-
-                              {savedAddress.isDefault && (
-                                <span className="rounded-full bg-green-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-green-700">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-
-                            <p className="mt-1 text-sm font-semibold text-gray-800">
-                              {savedAddress.fullName}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                              {savedAddress.phone}
-                            </p>
-
-                            <p className="mt-2 text-sm leading-5 text-gray-600">
-                              {savedAddress.addressLine}
-                            </p>
-
-                            {savedAddress.landmark && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                Near {savedAddress.landmark}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-           {/* Delivery Address */}
-<div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50/40 p-4 sm:p-5">
-  <div className="mb-5">
-    <p className="text-base font-extrabold text-gray-900">
-      📍 Delivery Address *
-    </p>
-
-    <p className="mt-1 text-xs font-medium leading-5 text-gray-500">
-      Enter your complete address and then select your exact location on
-      Google Maps.
-    </p>
-  </div>
-
-  <div className="grid gap-4 sm:grid-cols-2">
-    {/* House / Flat */}
-    <div>
-      <label className="mb-2 block text-sm font-bold text-gray-800">
-        House / Flat No. *
-      </label>
-
-      <input
-        type="text"
-        value={houseNumber}
-        onChange={(e) => {
-          setHouseNumber(e.target.value);
-          setSelectedAddressId("");
-        }}
-        placeholder="e.g. 123, Flat 4B"
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-      />
-    </div>
-
-    {/* Street */}
-    <div>
-      <label className="mb-2 block text-sm font-bold text-gray-800">
-        Street / Road *
-      </label>
-
-      <input
-        type="text"
-        value={street}
-        onChange={(e) => {
-          setStreet(e.target.value);
-          setSelectedAddressId("");
-        }}
-        placeholder="e.g. Main Road"
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-      />
-    </div>
-
-    {/* Locality */}
-    <div>
-      <label className="mb-2 block text-sm font-bold text-gray-800">
-        Locality / Area *
-      </label>
-
-      <input
-        type="text"
-        value={locality}
-        onChange={(e) => {
-          setLocality(e.target.value);
-          setSelectedAddressId("");
-        }}
-        placeholder="e.g. Shastri Nagar"
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-      />
-    </div>
-
-    {/* City */}
-    <div>
-      <label className="mb-2 block text-sm font-bold text-gray-800">
-        City *
-      </label>
-
-      <input
-        type="text"
-        value={city}
-        onChange={(e) => {
-          setCity(e.target.value);
-          setSelectedAddressId("");
-        }}
-        placeholder="e.g. Meerut"
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-      />
-    </div>
-
-    {/* Pincode */}
-    <div className="sm:col-span-2">
-      <label className="mb-2 block text-sm font-bold text-gray-800">
-        Pincode *
-      </label>
-
-      <input
-        type="text"
-        value={pincode}
-        onChange={(e) => {
-          setPincode(
-            e.target.value.replace(/\D/g, "").slice(0, 6)
-          );
-          setSelectedAddressId("");
-        }}
-        placeholder="6-digit pincode"
-        inputMode="numeric"
-        maxLength={6}
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-      />
-    </div>
-  </div>
-
-  {/* Google Map */}
-  <div className="mt-5">
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div>
-        <p className="text-sm font-extrabold text-gray-900">
-          Exact Location *
-        </p>
-
-        <p className="mt-1 text-xs font-medium text-gray-500">
-          Choose your exact delivery location on the map.
-        </p>
-      </div>
-
-      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-red-600">
-        Required
-      </span>
-    </div>
-
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <GoogleLocationPicker
-        latitude={latitude}
-        longitude={longitude}
-        onLocationChange={(
-          newLatitude,
-          newLongitude
-        ) => {
-          setLatitude(newLatitude);
-          setLongitude(newLongitude);
-          setSelectedAddressId("");
-
-          setLocationStatus(
-            `✅ Location selected: ${newLatitude.toFixed(
-              6
-            )}, ${newLongitude.toFixed(6)}`
-          );
-        }}
-      />
-    </div>
-  </div>
-
-  {locationStatus && (
-    <div
-      className={`mt-3 rounded-xl border px-4 py-3 text-sm font-semibold ${
-        locationStatus.startsWith("❌")
-          ? "border-red-100 bg-red-50 text-red-700"
-          : "border-green-100 bg-green-50 text-green-700"
-      }`}
-    >
-      {locationStatus}
-    </div>
-  )}
-</div>
-
-            {locationStatus && (
-              <div
-                className={`mt-3 rounded-xl border px-4 py-3 text-sm font-semibold ${
-                  locationStatus.startsWith("❌")
-                    ? "border-red-100 bg-red-50 text-red-700"
-                    : "border-green-100 bg-green-50 text-green-700"
-                }`}
-              >
-                {locationStatus}
-              </div>
-            )}
-
-          </div>
-        )}
-
         {/* Optional food customization */}
-        <div className="mt-7 rounded-2xl border border-orange-200 bg-orange-50/60 p-5">
-          <label htmlFor="food-customization" className="block text-base font-extrabold text-gray-900">
+        <div className="mt-6 rounded-2xl border border-amber-300 border-l-4 border-l-amber-700 bg-amber-100/80 p-5 shadow-sm">
+          <label htmlFor="food-customization" className="block text-base font-extrabold text-amber-950">
             Customize your food <span className="text-sm font-semibold text-gray-500">(optional)</span>
           </label>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-amber-950/75">
             Tell the outlet how you’d like it, such as extra spicy or not spicy.
           </p>
           <textarea
@@ -1053,30 +377,9 @@ if (orderType === "DELIVERY") {
             maxLength={500}
             rows={3}
             placeholder="Write your food preference here…"
-            className="mt-3 w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+            className="mt-3 w-full resize-y rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-gray-900 outline-none placeholder:text-amber-900/50 focus:border-amber-700 focus:ring-4 focus:ring-amber-200"
           />
           <p className="mt-1 text-right text-xs text-gray-500">{customizationNote.length}/500</p>
-        </div>
-
-        {/* Payment */}
-        <div className="mt-7 rounded-2xl border border-gray-100 bg-gray-50 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-              💳
-            </div>
-
-            <div>
-              <p className="font-extrabold text-gray-900">
-                Payment
-              </p>
-
-              <p className="mt-1 text-sm text-gray-500">
-                {orderType === "SELF_RECEIVE"
-                  ? "Self Receive orders require online payment."
-                  : "Online payment will be available at the final checkout step."}
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Order Summary */}
@@ -1095,9 +398,7 @@ if (orderType === "DELIVERY") {
             </div>
 
             <div className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-              {orderType === "DELIVERY"
-                ? "Delivery"
-                : "Self Receive"}
+              {orderType === "DINE_IN" ? "Dine In" : "Self Receive"}
             </div>
           </div>
 
@@ -1135,17 +436,13 @@ if (orderType === "DELIVERY") {
               </span>
             </div>
 
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                Delivery
-              </span>
+            {outletLocation?.gstin && (
+              <>
+                <div className="mt-2 flex items-center justify-between"><span className="text-sm text-gray-500">SGST</span><span className="text-sm font-semibold text-gray-800">₹{(Math.round(checkoutSgst * 100) / 100).toFixed(2)}</span></div>
+                <div className="mt-2 flex items-center justify-between"><span className="text-sm text-gray-500">CGST</span><span className="text-sm font-semibold text-gray-800">₹{(Math.round(checkoutCgst * 100) / 100).toFixed(2)}</span></div>
+              </>
+            )}
 
-              <span className="text-sm font-semibold text-green-600">
-                {orderType === "DELIVERY"
-                  ? "As applicable"
-                  : "—"}
-              </span>
-            </div>
           </div>
 
           <div className="mt-4 flex items-end justify-between border-t border-gray-200 pt-5">
@@ -1155,7 +452,7 @@ if (orderType === "DELIVERY") {
               </p>
 
               <p className="mt-1 text-3xl font-extrabold text-gray-900">
-                ₹{cartTotal}
+                ₹{checkoutTotal.toFixed(2)}
               </p>
             </div>
 
@@ -1181,15 +478,12 @@ if (orderType === "DELIVERY") {
             </>
           ) : (
             <>
-              Continue to Payment
+              Checkout
               <span>→</span>
             </>
           )}
         </button>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
-          🔒 Your order details are securely processed.
-        </p>
       </div>
     </div>
   );

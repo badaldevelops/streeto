@@ -13,13 +13,17 @@ const [name, setName] = useState("");
 const [description, setDescription] = useState("");
 
 const [outlets, setOutlets] = useState<
-  { id: string; name: string }[]
+  { id: string; name: string; gstin?: string | null; foodType: "VEG" | "NON_VEG" | "BOTH" }[]
 >([]);
 
 const [outletId, setOutletId] = useState("");
 const [price, setPrice] = useState("");
+const [gstin, setGstin] = useState("");
+const [sgstRate, setSgstRate] = useState("");
+const [cgstRate, setCgstRate] = useState("");
 const [isAvailable, setIsAvailable] =
   useState(true);
+const [isVeg, setIsVeg] = useState(true);
 
 const [saving, setSaving] = useState(false);
 const [error, setError] = useState("");
@@ -49,9 +53,13 @@ const [error, setError] = useState("");
           (outlet: {
             id: string;
             name: string;
+            gstin?: string | null;
+            foodType: "VEG" | "NON_VEG" | "BOTH";
           }) => ({
             id: outlet.id,
             name: outlet.name,
+            gstin: outlet.gstin ?? null,
+            foodType: outlet.foodType,
           })
         )
       );
@@ -96,7 +104,11 @@ if (!price || Number(price) < 0) {
   description,
   outletId,
   price: Number(price),
+  gstin,
+  sgstRate: sgstRate ? Number(sgstRate) : null,
+  cgstRate: cgstRate ? Number(cgstRate) : null,
   isAvailable,
+  isVeg,
 }),
       }
     );
@@ -290,9 +302,13 @@ if (!price || Number(price) < 0) {
   <select
     id="outlet"
     value={outletId}
-    onChange={(event) =>
-      setOutletId(event.target.value)
-    }
+    onChange={(event) => {
+      const selectedId = event.target.value;
+      setOutletId(selectedId);
+      const selectedOutlet = outlets.find((outlet) => outlet.id === selectedId);
+      setGstin(selectedOutlet?.gstin ?? "");
+      setIsVeg(selectedOutlet?.foodType !== "NON_VEG");
+    }}
     style={{
       width: "100%",
       boxSizing: "border-box",
@@ -319,6 +335,31 @@ if (!price || Number(price) < 0) {
   </select>
 </div>
 
+{outlets.find((outlet) => outlet.id === outletId)?.foodType === "BOTH" ? (
+  <div style={{ marginTop: "20px" }}>
+    <label style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>Food type</label>
+    <div style={{ display: "flex", gap: "12px" }}>
+      <button type="button" aria-pressed={isVeg} onClick={() => setIsVeg(true)} style={{ border: `2px solid ${isVeg ? "#16a34a" : "#d1d5db"}`, borderRadius: "10px", padding: "10px 16px", background: isVeg ? "#f0fdf4" : "white", fontWeight: 700 }}>🟢 Veg</button>
+      <button type="button" aria-pressed={!isVeg} onClick={() => setIsVeg(false)} style={{ border: `2px solid ${!isVeg ? "#dc2626" : "#d1d5db"}`, borderRadius: "10px", padding: "10px 16px", background: !isVeg ? "#fef2f2" : "white", fontWeight: 700 }}>🔴 Non-veg</button>
+    </div>
+  </div>
+) : outletId ? (
+  <p style={{ marginTop: "16px", fontSize: "14px", fontWeight: 700, color: outlets.find((outlet) => outlet.id === outletId)?.foodType === "NON_VEG" ? "#b91c1c" : "#15803d" }}>
+    {outlets.find((outlet) => outlet.id === outletId)?.foodType === "NON_VEG" ? "🔴 Non-veg label is set automatically for this outlet." : "🟢 Veg label is set automatically for this outlet."}
+  </p>
+) : null}
+
+<div style={{ marginTop: "20px" }}>
+  <label htmlFor="gstin" style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>
+    Outlet GSTIN (optional)
+  </label>
+  <input id="gstin" value={gstin} onChange={(event) => setGstin(event.target.value.toUpperCase())} maxLength={15} placeholder="Enter GSTIN to apply tax" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", fontSize: "15px" }} />
+  <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>GST is not added when this is left blank. This GSTIN is shared by all products for this outlet.</p>
+</div>
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "16px" }}>
+  <div><label htmlFor="sgstRate" style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>SGST rate (%)</label><input id="sgstRate" type="number" min="0" max="100" step="0.01" value={sgstRate} onChange={(event) => setSgstRate(event.target.value)} placeholder="0" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", fontSize: "15px" }} /></div>
+  <div><label htmlFor="cgstRate" style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginBottom: "8px" }}>CGST rate (%)</label><input id="cgstRate" type="number" min="0" max="100" step="0.01" value={cgstRate} onChange={(event) => setCgstRate(event.target.value)} placeholder="0" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", fontSize: "15px" }} /></div>
+</div>
 <div
   style={{
     marginTop: "20px",

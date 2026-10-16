@@ -8,6 +8,46 @@ export type TrackedCustomerOrder = {
 };
 
 let audioContext: AudioContext | null = null;
+let newOrderSoundBuffer: AudioBuffer | null = null;
+let newOrderSoundLoading: Promise<AudioBuffer | null> | null = null;
+let readyOrderSoundBuffer: AudioBuffer | null = null;
+let readyOrderSoundLoading: Promise<AudioBuffer | null> | null = null;
+
+async function loadNewOrderSound() {
+  if (newOrderSoundBuffer) return newOrderSoundBuffer;
+  if (!audioContext) return null;
+  newOrderSoundLoading ??= fetch("/sounds/order-alert.mp3")
+    .then((response) => {
+      if (!response.ok) throw new Error("Could not load the order alert sound.");
+      return response.arrayBuffer();
+    })
+    .then((bytes) => audioContext!.decodeAudioData(bytes))
+    .then((buffer) => {
+      newOrderSoundBuffer = buffer;
+      return buffer;
+    })
+    .catch(() => null)
+    .finally(() => { newOrderSoundLoading = null; });
+  return newOrderSoundLoading;
+}
+
+async function loadReadyOrderSound() {
+  if (readyOrderSoundBuffer) return readyOrderSoundBuffer;
+  if (!audioContext) return null;
+  readyOrderSoundLoading ??= fetch("/sounds/order-ready.mp3")
+    .then((response) => {
+      if (!response.ok) throw new Error("Could not load the ready order sound.");
+      return response.arrayBuffer();
+    })
+    .then((bytes) => audioContext!.decodeAudioData(bytes))
+    .then((buffer) => {
+      readyOrderSoundBuffer = buffer;
+      return buffer;
+    })
+    .catch(() => null)
+    .finally(() => { readyOrderSoundLoading = null; });
+  return readyOrderSoundLoading;
+}
 
 export async function enableOrderSounds() {
   if (typeof window === "undefined") {
@@ -30,6 +70,8 @@ export async function enableOrderSounds() {
       await audioContext.resume();
     }
 
+    await loadNewOrderSound();
+    await loadReadyOrderSound();
     return audioContext.state === "running";
   } catch {
     return false;
@@ -65,23 +107,14 @@ function playNotes(notes: number[], spacing: number, duration: number, volume = 
 }
 
 export function playNewOrderSound() {
-  // Classic dual-tone telephone ring. The admin alert repeats it until resolved.
-  if (!audioContext || audioContext.state !== "running") return;
-  const startAt = audioContext.currentTime;
-  [440, 480].forEach((frequency) => {
-    const oscillator = audioContext!.createOscillator();
-    const gain = audioContext!.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, startAt);
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(0.2, startAt + 0.03);
-    gain.gain.setValueAtTime(0.2, startAt + 0.78);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.9);
-    oscillator.connect(gain);
-    gain.connect(audioContext!.destination);
-    oscillator.start(startAt);
-    oscillator.stop(startAt + 0.92);
-  });
+  if (!audioContext || audioContext.state !== "running" || !newOrderSoundBuffer) return;
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  source.buffer = newOrderSoundBuffer;
+  gain.gain.value = 0.85;
+  source.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start();
 }
 
 export function playOrderStatusSound() {
@@ -91,6 +124,17 @@ export function playOrderStatusSound() {
 
   playNotes([784, 1047], 0.12, 0.2);
   return true;
+}
+
+export function playReadyOrderSound() {
+  if (!audioContext || audioContext.state !== "running" || !readyOrderSoundBuffer) return;
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  source.buffer = readyOrderSoundBuffer;
+  gain.gain.value = 0.85;
+  source.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start();
 }
 
 export function readTrackedCustomerOrders(): TrackedCustomerOrder[] {

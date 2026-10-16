@@ -1,17 +1,25 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/session";
-import { sendNewOrderPush } from "@/lib/business-push";
-import { isDeliveryEnabled } from "@/lib/platform-settings";
+import { getCurrentUser } from "@/lib/auth";
+import { getCashfreeConfig, getCashfreeMode, startCashfreeOrder } from "@/lib/cashfree";
 
 export async function POST(request: Request) {
   try {
+    const customer = await getCurrentUser();
+    if (!customer || customer.role !== "CUSTOMER") {
+      return NextResponse.json(
+        { error: "Please log in as a customer before placing an order." },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as any;
 
     const {
       customerName,
       customerPhone,
       orderType,
+      pickupOnly,
       deliveryAddress,
       customizationNote,
         latitude,
@@ -88,13 +96,21 @@ export async function POST(request: Request) {
 
     if (
       orderType !== "DELIVERY" &&
-      orderType !== "SELF_RECEIVE"
+      orderType !== "SELF_RECEIVE" &&
+      orderType !== "DINE_IN"
     ) {
       return NextResponse.json(
         {
           error: "Invalid order type.",
         },
         { status: 400 }
+      );
+    }
+
+    if (orderType === "DELIVERY") {
+      return NextResponse.json(
+        { error: "Qtoo currently accepts Self Receive and Dine In orders only." },
+        { status: 403 }
       );
     }
 
@@ -108,10 +124,10 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (orderType === "DELIVERY" && !(await isDeliveryEnabled())) {
+    if (orderType === "DELIVERY" && pickupOnly === true) {
       return NextResponse.json(
-        { error: "Delivery is currently unavailable. Please choose Self Receive." },
-        { status: 403 }
+        { error: "This outlet was selected for Self Receive only." },
+        { status: 400 }
       );
     }
     if (
@@ -176,59 +192,6 @@ if (
       );
     }
 
-    // Get logged-in customer from session cookie.
-    const cookieHeader = request.headers.get("cookie");
-
-    const sessionToken = cookieHeader
-      ?.split(";")
-      .map((cookie) => cookie.trim())
-      .find((cookie) =>
-        cookie.startsWith("session=")
-      )
-      ?.split("=")[1];
-
-    if (!sessionToken) {
-      return NextResponse.json(
-        {
-          error:
-            "Please login before placing an order.",
-        },
-        { status: 401 }
-      );
-    }
-
-    const customerId =
-      await verifySession(sessionToken);
-
-    if (!customerId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your session has expired. Please login again.",
-        },
-        { status: 401 }
-      );
-    }
-
-    const customer =
-      await prisma.user.findUnique({
-        where: {
-          id: customerId,
-        },
-      });
-
-    if (
-      !customer ||
-      customer.role !== "CUSTOMER"
-    ) {
-      return NextResponse.json(
-        {
-          error: "Customer account not found.",
-        },
-        { status: 401 }
-      );
-    }
-
     /*
      * Load every cart product from the database.
      * Never trust product price, outlet or company
@@ -251,7 +214,7 @@ if (
         include: {
           outlet: {
             include: {
-              company: true,
+              company: { select: { isActive: true, isOpen: true } },
             },
           },
           product: true,
@@ -297,6 +260,20 @@ if (
     const outlet =
       outletProducts[0].outlet;
 
+    if (!outlet.company.isActive) {
+      return NextResponse.json(
+        { error: "This business is currently unavailable." },
+        { status: 403 }
+      );
+    }
+
+    if (orderType === "DELIVERY" && !outlet.deliveryEnabled) {
+      return NextResponse.json(
+        { error: "This outlet is not currently offering delivery. Please choose Self Receive or Dine In." },
+        { status: 403 }
+      );
+    }
+
     if (!outlet.company.isOpen) {
       return NextResponse.json(
         { error: "This store is closed and is not accepting orders right now." },
@@ -304,6 +281,12 @@ if (
       );
     }
 
+    if (!getCashfreeConfig()) {
+      return NextResponse.json(
+        { error: "Cashfree payment is not configured yet. Please try again later." },
+        { status: 503 }
+      );
+    }
     /*
      * All products must also be available.
      */
@@ -327,6 +310,8 @@ if (
      * using the database prices.
      */
     let subtotal = 0;
+    let sgstAmount = 0;
+    let cgstAmount = 0;
 
     for (const item of items) {
       if (
@@ -361,8 +346,16 @@ if (
 
       subtotal +=
         product.price * item.quantity;
+      if (outlet.gstin) {
+        const lineSubtotal = product.price * item.quantity;
+        sgstAmount += Math.round(lineSubtotal * product.sgstRate) / 100;
+        cgstAmount += Math.round(lineSubtotal * product.cgstRate) / 100;
+      }
     }
 
+    subtotal = Math.round(subtotal * 100) / 100;
+    sgstAmount = Math.round(sgstAmount * 100) / 100;
+    cgstAmount = Math.round(cgstAmount * 100) / 100;
     /*
      * Delivery charge comes from the selected outlet.
      * For self receive, delivery charge is zero.
@@ -372,8 +365,13 @@ if (
         ? outlet.deliveryCharge
         : 0;
 
-    const total =
-      subtotal + deliveryCharge;
+    const total = Math.round(
+      (subtotal + sgstAmount + cgstAmount + deliveryCharge) * 100
+    ) / 100;
+    // Qtoo charges the outlet 2% of the full bill. GST is charged on Qtoo's fee,
+    // not added to the customer's checkout amount.
+    const platformCommission = Math.round(total * 0.02 * 100) / 100;
+    const platformCommissionGst = Math.round(platformCommission * 0.18 * 100) / 100;
       if (orderType === "DELIVERY") {
   const outletLatitude = outlet.latitude;
   const outletLongitude = outlet.longitude;
@@ -429,34 +427,6 @@ if (
 }
 
     /*
-     * Self Receive queue.
-     */
-    let queueNumber: number | null = null;
-    let queuePosition: number | null = null;
-
-    if (orderType === "SELF_RECEIVE") {
-      const activeSelfReceiveOrders =
-        await prisma.order.count({
-          where: {
-            outletId: outlet.id,
-            type: "SELF_RECEIVE",
-            status: {
-              notIn: [
-                "COMPLETED",
-                "CANCELLED",
-              ],
-            },
-          },
-        });
-
-      queueNumber =
-        activeSelfReceiveOrders + 1;
-
-      queuePosition =
-        activeSelfReceiveOrders + 1;
-    }
-
-    /*
      * Create the order.
      */
     const order =
@@ -464,15 +434,21 @@ if (
         data: {
           orderNumber: `ORD-${Date.now()}`,
           type: orderType,
+          status: "PAYMENT_PENDING",
           outletId: outlet.id,
           customerId: customer.id,
 
           subtotal,
+          sgstAmount,
+          cgstAmount,
+          gstin: outlet.gstin,
           deliveryCharge,
           total,
+          platformCommission,
+          platformCommissionGst,
 
-          queueNumber,
-          queuePosition,
+          queueNumber: null,
+          queuePosition: null,
 
           customerPhone:
             customer.phone ||
@@ -513,6 +489,7 @@ customerLongitude:
                       item.outletProductId
                   );
 
+                const itemSubtotal = product!.price * item.quantity;
                 return {
                   productId:
                     product!.productId,
@@ -524,13 +501,17 @@ customerLongitude:
                     product!.price,
 
                   totalPrice:
-                    product!.price *
-                    item.quantity,
+                    itemSubtotal,
+                  sgstAmount: outlet.gstin
+                    ? Math.round(itemSubtotal * product!.sgstRate) / 100
+                    : 0,
+                  cgstAmount: outlet.gstin
+                    ? Math.round(itemSubtotal * product!.cgstRate) / 100
+                    : 0,
                 };
               }
             ),
           },
-
           payment: {
             create: {
               amount: total,
@@ -538,23 +519,65 @@ customerLongitude:
               status: "PENDING",
             },
           },
+
         },
 
         include: {
           items: true,
-          payment: true,
+          outlet: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       });
 
-    await sendNewOrderPush(outlet.companyId, {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      total: order.total,
-    });
+    const gatewayOrderId = `qtoo_${order.id}`;
+    let cashfreeOrder: { orderId: string; paymentSessionId: string };
+    try {
+      cashfreeOrder = await startCashfreeOrder({
+        orderId: gatewayOrderId,
+        amount: total,
+        customerId: customer.id,
+        customerName: customer.name || customerName.trim(),
+        customerPhone: customer.phone || customerPhone,
+        customerEmail: customer.email,
+        returnUrl: `https://qtoo.in/api/payments/cashfree/return?order_id={order_id}`,
+        notifyUrl: "https://qtoo.in/api/payments/cashfree/webhook",
+      });
+      await prisma.payment.update({
+        where: { orderId: order.id },
+        data: {
+          gatewayOrderId: cashfreeOrder.orderId,
+          gatewaySessionId: cashfreeOrder.paymentSessionId,
+        },
+      });
+    } catch (error) {
+      console.error("Cashfree order creation failed:", error instanceof Error ? error.message : "Unknown Cashfree error");
+      await prisma.$transaction([
+        prisma.payment.updateMany({ where: { orderId: order.id, status: "PENDING" }, data: { status: "FAILED" } }),
+        prisma.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } }),
+      ]);
+      return NextResponse.json(
+        { error: "Cashfree could not start this payment. Please try again shortly." },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      order,
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        type: order.type,
+        status: order.status,
+        queueNumber: order.queueNumber,
+        total: order.total,
+      },
+      cashfreeOrderId: cashfreeOrder.orderId,
+      paymentSessionId: cashfreeOrder.paymentSessionId,
+      cashfreeMode: getCashfreeMode(),
     });
   } catch (error) {
     console.error(

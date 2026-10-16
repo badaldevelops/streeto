@@ -62,6 +62,7 @@ export async function PATCH(request: Request) {
       where: {
         id: orderId,
       },
+      include: { payment: { select: { status: true } } },
     });
 
     if (!existingOrder) {
@@ -70,6 +71,13 @@ export async function PATCH(request: Request) {
           error: "Order not found.",
         },
         { status: 404 }
+      );
+    }
+
+    if (status !== "CANCELLED" && existingOrder.payment?.status !== "PAID") {
+      return NextResponse.json(
+        { error: "This order cannot be processed until Cashfree confirms payment." },
+        { status: 409 }
       );
     }
 

@@ -13,18 +13,12 @@ type SalesOrder = {
     id: string;
     name: string;
   };
-  payment: {
-    method: string;
-    status: string;
-  } | null;
 };
 
 type SalesData = {
   summary: {
     totalSales: number;
     totalOrders: number;
-    paidOrders: number;
-    pendingPayments: number;
   };
   orders: SalesOrder[];
 };
@@ -83,6 +77,9 @@ export default function BusinessAdminSalesPage() {
     return (
       <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          <a href="/business-admin" className="mb-4 inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm font-extrabold text-orange-700 shadow-sm transition hover:bg-orange-50">
+            ← Back to dashboard
+          </a>
           <div className="rounded-3xl border border-orange-100 bg-white p-12 text-center shadow-sm">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-3xl">
               📊
@@ -105,6 +102,9 @@ export default function BusinessAdminSalesPage() {
     return (
       <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          <a href="/business-admin" className="mb-4 inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm font-extrabold text-orange-700 shadow-sm transition hover:bg-orange-50">
+            ← Back to dashboard
+          </a>
           <div className="rounded-3xl border border-red-100 bg-white p-8 shadow-xl">
             <div className="flex items-start gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-2xl">
@@ -140,6 +140,9 @@ export default function BusinessAdminSalesPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
+        <a href="/business-admin" className="mb-4 inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm font-extrabold text-orange-700 shadow-sm transition hover:bg-orange-50">
+          ← Back to dashboard
+        </a>
         {/* Header */}
         <div className="mb-8 rounded-3xl bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 p-6 text-white shadow-xl sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -161,8 +164,7 @@ export default function BusinessAdminSalesPage() {
               </div>
 
               <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-orange-50 sm:text-base">
-                Track your business sales, orders and payment
-                summary from one place.
+                Track your business order value and order volume.
               </p>
             </div>
 
@@ -177,12 +179,12 @@ export default function BusinessAdminSalesPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2">
           <SummaryCard
             icon="💰"
             title="Total Sales"
             value={`₹${summary?.totalSales.toFixed(2)}`}
-            description="Total order value"
+            description="Value of orders placed"
             valueClass="text-orange-600"
           />
 
@@ -194,23 +196,6 @@ export default function BusinessAdminSalesPage() {
             valueClass="text-gray-900"
           />
 
-          <SummaryCard
-            icon="✅"
-            title="Paid Orders"
-            value={String(summary?.paidOrders ?? 0)}
-            description="Payments completed"
-            valueClass="text-emerald-600"
-          />
-
-          <SummaryCard
-            icon="⏳"
-            title="Pending Payments"
-            value={String(
-              summary?.pendingPayments ?? 0
-            )}
-            description="Payments awaiting completion"
-            valueClass="text-orange-600"
-          />
         </div>
 
         {/* Sales Orders */}
@@ -228,7 +213,7 @@ export default function BusinessAdminSalesPage() {
                   </h2>
 
                   <p className="mt-1 text-xs font-medium text-gray-500">
-                    Order-wise sales and payment details
+                    Order-wise sales details
                   </p>
                 </div>
               </div>
@@ -278,10 +263,6 @@ export default function BusinessAdminSalesPage() {
                       </th>
 
                       <th className="px-6 py-4 text-xs font-extrabold uppercase tracking-wide text-gray-400">
-                        Payment
-                      </th>
-
-                      <th className="px-6 py-4 text-xs font-extrabold uppercase tracking-wide text-gray-400">
                         Status
                       </th>
 
@@ -325,31 +306,6 @@ export default function BusinessAdminSalesPage() {
                           <span className="text-base font-extrabold text-orange-600">
                             ₹{order.total.toFixed(2)}
                           </span>
-                        </td>
-
-                        <td className="px-6 py-5">
-                          {order.payment ? (
-                            <div>
-                              <p className="text-sm font-bold text-gray-800">
-                                {order.payment.method}
-                              </p>
-
-                              <span
-                                className={`mt-1 inline-block rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
-                                  order.payment.status ===
-                                  "PAID"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-orange-100 text-orange-700"
-                                }`}
-                              >
-                                {order.payment.status}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm font-medium text-gray-400">
-                              No payment
-                            </span>
-                          )}
                         </td>
 
                         <td className="px-6 py-5">
@@ -411,15 +367,6 @@ export default function BusinessAdminSalesPage() {
                       />
 
                       <MobileInfo
-                        label="Payment"
-                        value={
-                          order.payment
-                            ? order.payment.status
-                            : "No payment"
-                        }
-                      />
-
-                      <MobileInfo
                         label="Date"
                         value={formatDate(
                           order.createdAt
@@ -427,17 +374,6 @@ export default function BusinessAdminSalesPage() {
                       />
                     </div>
 
-                    {order.payment && (
-                      <div className="mt-3 rounded-xl bg-gray-50 px-3 py-2.5">
-                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-gray-400">
-                          Payment Method
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-gray-700">
-                          {order.payment.method}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -446,8 +382,7 @@ export default function BusinessAdminSalesPage() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-orange-100 bg-white p-4 text-center text-xs font-medium text-gray-500 shadow-sm">
-          Sales management • Order totals and payment information
-          are shown from your business sales data
+          Sales management • Order totals are shown from your business orders
         </div>
       </div>
     </main>

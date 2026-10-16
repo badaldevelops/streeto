@@ -7,6 +7,7 @@ type OutletProduct = {
   id: string;
   price: number;
   isAvailable: boolean;
+  isVeg: boolean;
   outlet: {
     id: string;
     name: string;
@@ -262,14 +263,6 @@ export default function BusinessAdminProductsPage() {
               product.
             </p>
 
-            <button
-              onClick={() =>
-                router.push("/business-admin/products/new")
-              }
-              className="mt-6 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
-            >
-              + Add Your First Product
-            </button>
           </div>
         )}
 
@@ -358,6 +351,10 @@ export default function BusinessAdminProductsPage() {
                                 <p className="truncate text-sm font-extrabold text-gray-900">
                                   {outletProduct.outlet.name}
                                 </p>
+                                <span className={`mt-1 inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold ${outletProduct.isVeg ? "border-green-600 text-green-700" : "border-red-600 text-red-700"}`}>
+                                  <span className={`mr-1 inline-block h-2 w-2 rounded-full ${outletProduct.isVeg ? "bg-green-600" : "bg-red-600"}`} />
+                                  {outletProduct.isVeg ? "Veg" : "Non-veg"}
+                                </span>
 
                                 <p className="mt-0.5 text-xs font-medium text-gray-500">
                                   {outletProduct.outlet.isActive

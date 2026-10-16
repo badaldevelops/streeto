@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import AddToCartButton from "@/app/components/AddToCartButton";
 import CartButton from "@/app/components/CartButton";
 import CartPanel from "@/app/components/CartPanel";
-import Checkout from "@/app/components/Checkout";
+import CartCheckoutBar from "@/app/components/CartCheckoutBar";
 import CustomerStatus from "@/app/components/CustomerStatus";
 import StoreStatusSync from "@/app/components/StoreStatusSync";
 import MobileCustomerNav from "@/app/components/MobileCustomerNav";
@@ -16,26 +16,32 @@ type BusinessPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    outletId?: string;
+    pickupOnly?: string;
+    orderType?: string;
+  }>;
 };
 
 export default async function BusinessPage({
   params,
+  searchParams,
 }: BusinessPageProps) {
    const user = await getCurrentUser();
 
 if (user?.role === "SUPER_ADMIN") {
-    redirect("/admin");
+    redirect("https://admin.qtoo.in/admin");
   }
 
   if (user?.role === "BUSINESS_ADMIN") {
-    redirect("/business-admin");
+    redirect("https://business.qtoo.in/business-admin");
   }
 
   if (user?.role === "DELIVERY_STAFF") {
-    redirect("/delivery");
+    redirect("https://qtoo.in/delivery");
   }
 
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
 
   const business = await prisma.company.findUnique({
     where: {
@@ -53,8 +59,9 @@ if (user?.role === "SUPER_ADMIN") {
           id: true,
           name: true,
           address: true,
-          deliveryRadiusKm: true,
-          deliveryCharge: true,
+          latitude: true,
+          longitude: true,
+          foodType: true,
           outletProducts: {
             where: {
               isAvailable: true,
@@ -62,8 +69,18 @@ if (user?.role === "SUPER_ADMIN") {
                 isActive: true,
               },
             },
-            include: {
-              product: true,
+            select: {
+              id: true,
+              price: true,
+              isVeg: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  imageUrl: true,
+                },
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -81,13 +98,30 @@ if (user?.role === "SUPER_ADMIN") {
     notFound();
   }
 
-  const activeOutlets = business.outlets;
+  const ratingGroups = business.outlets.length
+    ? await prisma.outletRating.groupBy({
+        by: ["outletId"],
+        where: {
+          outletId: { in: business.outlets.map((outlet) => outlet.id) },
+          order: { status: { in: ["COMPLETED", "DELIVERED"] }, payment: { is: { status: "PAID" } } },
+        },
+        _avg: { stars: true },
+        _count: { stars: true },
+      })
+    : [];
+  const ratingsByOutlet = new Map(ratingGroups.map((rating) => [rating.outletId, {
+    average: rating._avg.stars === null ? null : Number(rating._avg.stars.toFixed(2)),
+    count: rating._count.stars,
+  }]));
 
-  const totalProducts = activeOutlets.reduce(
-    (total, outlet) =>
-      total + outlet.outletProducts.length,
-    0
-  );
+  let activeOutlets = business.outlets;
+  if (query.outletId) {
+    const selectedOutlet = business.outlets.find((outlet) => outlet.id === query.outletId);
+    if (!selectedOutlet) notFound();
+    activeOutlets = [selectedOutlet];
+  }
+  const pickupOnly = query.pickupOnly === "1";
+  const initialOrderType = "SELF_RECEIVE";
 
   return (
     <main className="min-h-screen bg-[#fffaf5] pb-20 text-gray-900 sm:pb-0">
@@ -123,7 +157,7 @@ if (user?.role === "SUPER_ADMIN") {
 
       {/* HERO */}
       <section className="px-3 pb-5 pt-3 sm:px-6 sm:pb-8 sm:pt-7 lg:px-8">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[24px] bg-gradient-to-br from-gray-950 via-gray-900 to-orange-950 px-5 py-6 text-white shadow-[0_18px_45px_rgba(0,0,0,0.14)] sm:rounded-[32px] sm:px-10 sm:py-14 lg:px-14">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[24px] bg-gradient-to-br from-gray-950 via-gray-900 to-orange-950 px-5 py-4 text-white shadow-[0_18px_45px_rgba(0,0,0,0.14)] sm:rounded-[32px] sm:px-10 sm:py-8 lg:px-14">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-orange-500/20 blur-2xl" />
           <div className="absolute -bottom-28 right-24 h-64 w-64 rounded-full bg-red-500/10 blur-3xl" />
 
@@ -137,30 +171,11 @@ if (user?.role === "SUPER_ADMIN") {
               {business.name}
             </h2>
 
-            <p className="mt-3 max-w-2xl text-[13px] font-medium leading-5 text-gray-300 sm:mt-5 sm:text-base sm:leading-8">
+            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-gray-300 sm:mt-4 sm:text-base sm:leading-8">
               Explore the menu, choose your favourite food and
               order from the outlet that works best for you.
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur">
-                🏪 {activeOutlets.length}{" "}
-                {activeOutlets.length === 1
-                  ? "Outlet"
-                  : "Outlets"}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur">
-                🍽️ {totalProducts}{" "}
-                {totalProducts === 1
-                  ? "Product"
-                  : "Products"}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur">
-                🚚 Delivery Available
-              </div>
-            </div>
           </div>
 
           <div className="absolute bottom-4 right-5 hidden h-44 w-44 items-center justify-center rounded-full border border-white/10 bg-white/5 text-8xl shadow-2xl backdrop-blur sm:flex lg:bottom-8 lg:right-12 lg:h-52 lg:w-52">
@@ -225,6 +240,12 @@ if (user?.role === "SUPER_ADMIN") {
                           </span>
                         </div>
 
+                        <div className="mt-2 flex flex-wrap gap-1 text-[10px] font-bold">
+                          {(outlet.foodType === "VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">🟢 Veg</span>}
+                          {(outlet.foodType === "NON_VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-red-50 px-2 py-1 text-red-700">🔴 Non-veg</span>}
+                          <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800">⭐ {ratingsByOutlet.get(outlet.id)?.average === null || !ratingsByOutlet.has(outlet.id) ? "New · no ratings" : `${ratingsByOutlet.get(outlet.id)!.average!.toFixed(1)} · ${ratingsByOutlet.get(outlet.id)!.count} ratings`}</span>
+                        </div>
+
                         <div className="mt-2 space-y-1">
                           {outlet.address && (
                             <p className="text-sm font-medium text-gray-500">
@@ -233,32 +254,22 @@ if (user?.role === "SUPER_ADMIN") {
                           )}
 
                         </div>
+                        {outlet.latitude !== null && outlet.longitude !== null && (
+                          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 bg-white sm:max-w-md">
+                            <iframe
+                              title={`${outlet.name} location`}
+                              src={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}&z=15&output=embed`}
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              className="h-36 w-full border-0"
+                            />
+                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noopener noreferrer" className="block px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-50">Open directions in Maps ↗</a>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gray-400">
-                          Delivery
-                        </p>
-
-                        <p className="mt-1 text-sm font-black text-gray-800">
-                          {outlet.deliveryCharge === 0
-                            ? "Free"
-                            : `₹${outlet.deliveryCharge}`}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3">
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-orange-500">
-                          Radius
-                        </p>
-
-                        <p className="mt-1 text-sm font-black text-orange-800">
-                          {outlet.deliveryRadiusKm} km
-                        </p>
-                      </div>
-
                       <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
                         <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gray-400">
                           Menu
@@ -344,6 +355,10 @@ if (user?.role === "SUPER_ADMIN") {
                                 <h5 className="line-clamp-2 text-base font-black leading-tight text-gray-950 sm:text-xl">
                                   {item.product.name}
                                 </h5>
+                                <span className={`mt-1 inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold ${item.isVeg ? "border-green-600 text-green-700" : "border-red-600 text-red-700"}`} aria-label={item.isVeg ? "Vegetarian" : "Non-vegetarian"}>
+                                  <span className={`mr-1 inline-block h-2 w-2 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
+                                  {item.isVeg ? "Veg" : "Non-veg"}
+                                </span>
 
                                 <p className="mt-1 line-clamp-2 text-xs font-medium leading-4 text-gray-500 sm:mt-2 sm:text-sm sm:leading-5">
                                   {item.product.description ||
@@ -384,34 +399,9 @@ if (user?.role === "SUPER_ADMIN") {
         )}
       </section>
 
-      {/* CART */}
-      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-        <div className="mb-5">
-         
-
-          <h2 className="mt-1 text-2xl font-black text-gray-950">
-            Cart
-          </h2>
-        </div>
-
-        <div className="overflow-hidden rounded-[28px] border border-orange-100 bg-white shadow-lg">
-      <CartPanel />
+      <CartPanel checkoutHref={`/checkout?pickupOnly=${pickupOnly ? "1" : "0"}&orderType=${initialOrderType}`} />
+      <CartCheckoutBar href={`/checkout?pickupOnly=${pickupOnly ? "1" : "0"}&orderType=${initialOrderType}`} />
       <MobileCustomerNav />
-        </div>
-      </section>
-
-      {/* CHECKOUT */}
-      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
-        <div className="mb-5">
-         
-
-          
-        </div>
-
-        <div className="overflow-hidden rounded-[28px] border border-orange-100 bg-white shadow-lg">
-          <Checkout />
-        </div>
-      </section>
 
       {/* FOOTER */}
       <footer className="border-t border-orange-100 bg-white">

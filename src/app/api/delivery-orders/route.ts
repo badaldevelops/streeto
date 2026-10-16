@@ -29,6 +29,12 @@ export async function GET() {
       await prisma.delivery.findMany({
         where: {
           deliveryStaffId: user.id,
+          order: {
+            OR: [
+              { payment: { is: { method: { not: "ONLINE" } } } },
+              { payment: { is: { status: "PAID" } } },
+            ],
+          },
         },
         orderBy: {
           assignedAt: "desc",

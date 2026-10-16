@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   customerOrderTrackedEvent,
   enableOrderSounds,
+  playReadyOrderSound,
   playOrderStatusSound,
   readTrackedCustomerOrders,
   saveTrackedCustomerOrders,
@@ -38,6 +39,25 @@ export default function CustomerOrderSoundMonitor() {
   const requestInFlight = useRef(false);
   const [isTracking, setIsTracking] = useState(false);
   const [readyNotification, setReadyNotification] = useState<ReadyOrderNotice | null>(null);
+
+  useEffect(() => {
+    if (!readyNotification) return;
+
+    let stopped = false;
+    async function ringWhileNoticeIsOpen() {
+      const enabled = await enableOrderSounds();
+      if (enabled && !stopped) playReadyOrderSound();
+    }
+
+    void ringWhileNoticeIsOpen();
+    const interval = window.setInterval(() => {
+      void ringWhileNoticeIsOpen();
+    }, 2400);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+    };
+  }, [readyNotification]);
 
   useEffect(() => {
     function enableOnCustomerInteraction() {
@@ -168,7 +188,7 @@ export default function CustomerOrderSoundMonitor() {
           if (!lastStatus) {
             lastStatus = status;
           } else if (lastStatus !== status) {
-            playOrderStatusSound();
+            if (status !== "READY") playOrderStatusSound();
             lastStatus = status;
           }
 
@@ -206,7 +226,7 @@ export default function CustomerOrderSoundMonitor() {
     void checkTrackedOrders();
     const interval = window.setInterval(() => {
       void checkTrackedOrders();
-    }, 5000);
+    }, 15000);
 
     return () => {
       stopped = true;
@@ -255,6 +275,8 @@ export default function CustomerOrderSoundMonitor() {
           <p className="text-base font-semibold leading-7 text-gray-700">
             {readyNotification.type === "SELF_RECEIVE"
               ? "Please collect your order from the outlet. Show your order number when you arrive."
+              : readyNotification.type === "DINE_IN"
+                ? "Your order is ready. Please enjoy it at the outlet."
               : "Your order is ready and will be handed over for delivery shortly."}
           </p>
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

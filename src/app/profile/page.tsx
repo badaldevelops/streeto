@@ -7,6 +7,7 @@ type Customer = {
   name: string;
   email: string;
   phone: string;
+  role: string;
 };
 
 type Address = {
@@ -28,10 +29,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [addressLoading, setAddressLoading] = useState(true);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [profilePhone, setProfilePhone] = useState("");
+  const [editingProfilePhone, setEditingProfilePhone] = useState(false);
+  const [savingProfilePhone, setSavingProfilePhone] = useState(false);
 
   const [error, setError] = useState("");
   const [addressError, setAddressError] = useState("");
   const [addressMessage, setAddressMessage] = useState("");
+  const [profilePhoneError, setProfilePhoneError] = useState("");
+  const [profilePhoneMessage, setProfilePhoneMessage] = useState("");
 
   const [showAddressForm, setShowAddressForm] = useState(false);
 
@@ -88,10 +94,12 @@ export default function ProfilePage() {
           name: data.user?.name || "",
           email: data.user?.email || "",
           phone: data.user?.phone || "",
+          role: data.user?.role || "",
         });
 
         setFullName(data.user?.name || "");
         setPhone(data.user?.phone || "");
+        setProfilePhone(data.user?.phone || "");
       } catch (error) {
         console.error(error);
         setError(
@@ -105,6 +113,48 @@ export default function ProfilePage() {
     loadProfile();
     loadAddresses();
   }, []);
+
+  async function handleProfilePhoneSave(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    const nextPhone = profilePhone.trim();
+    if (!/^[0-9]{10}$/.test(nextPhone)) {
+      setProfilePhoneError("Enter a valid 10-digit phone number.");
+      return;
+    }
+
+    try {
+      setSavingProfilePhone(true);
+      setProfilePhoneError("");
+      setProfilePhoneMessage("");
+
+      const response = await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: nextPhone }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setProfilePhoneError(data.error || "Unable to update your phone number.");
+        return;
+      }
+
+      const savedPhone = data.user?.phone || nextPhone;
+      setCustomer((current) => current ? { ...current, phone: savedPhone } : current);
+      setProfilePhone(savedPhone);
+      setPhone(savedPhone);
+      setEditingProfilePhone(false);
+      setProfilePhoneMessage("Profile phone number updated.");
+    } catch (error) {
+      console.error(error);
+      setProfilePhoneError("Something went wrong while updating your phone number.");
+    } finally {
+      setSavingProfilePhone(false);
+    }
+  }
 
   async function handleAddAddress(
     event: React.FormEvent<HTMLFormElement>
@@ -339,13 +389,86 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-700">
-                Phone
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Phone</p>
+                  {!editingProfilePhone && (
+                    <p className="mt-1 text-lg font-semibold">
+                      {customer.phone || "Not provided"}
+                    </p>
+                  )}
+                </div>
 
-              <p className="mt-1 text-lg font-semibold">
-                {customer.phone}
-              </p>
+                {!editingProfilePhone && customer.role === "CUSTOMER" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfilePhone(customer.phone);
+                      setProfilePhoneError("");
+                      setProfilePhoneMessage("");
+                      setEditingProfilePhone(true);
+                    }}
+                    className="min-h-10 rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {profilePhoneMessage && !editingProfilePhone && (
+                <p aria-live="polite" className="mt-2 text-sm font-semibold text-green-700">
+                  {profilePhoneMessage}
+                </p>
+              )}
+
+              {editingProfilePhone && (
+                <form onSubmit={handleProfilePhoneSave} className="mt-3 space-y-3">
+                  <label htmlFor="profile-phone" className="block text-sm font-semibold text-gray-700">
+                    New phone number
+                  </label>
+                  <input
+                    id="profile-phone"
+                    type="tel"
+                    value={profilePhone}
+                    onChange={(event) => setProfilePhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
+                    required
+                    maxLength={10}
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-950 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                    placeholder="10-digit phone number"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Use a number where outlets can reach you. Saved address phone numbers remain separate.
+                  </p>
+                  {profilePhoneError && (
+                    <p role="alert" className="text-sm font-semibold text-red-700">
+                      {profilePhoneError}
+                    </p>
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={savingProfilePhone}
+                      className="min-h-11 rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {savingProfilePhone ? "Saving…" : "Save phone"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingProfilePhone}
+                      onClick={() => {
+                        setProfilePhone(customer.phone);
+                        setProfilePhoneError("");
+                        setEditingProfilePhone(false);
+                      }}
+                      className="min-h-11 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             <div>

@@ -6,12 +6,17 @@ import { useParams, useRouter } from "next/navigation";
 type Outlet = {
   id: string;
   name: string;
+  gstin?: string | null;
+  foodType: "VEG" | "NON_VEG" | "BOTH";
 };
 
 type ProductOutlet = {
   outletId: string;
   price: number;
+  sgstRate: number;
+  cgstRate: number;
   isAvailable: boolean;
+  isVeg: boolean;
   outlet: {
     id: string;
     name: string;
@@ -44,9 +49,13 @@ export default function EditProductPage() {
   const [description, setDescription] = useState("");
 
   const [outletId, setOutletId] = useState("");
-  const [price, setPrice] = useState("");
+const [price, setPrice] = useState("");
+const [gstin, setGstin] = useState("");
+const [sgstRate, setSgstRate] = useState("");
+const [cgstRate, setCgstRate] = useState("");
   const [isAvailable, setIsAvailable] =
     useState(true);
+  const [isVeg, setIsVeg] = useState(true);
 
   const [isActive, setIsActive] =
     useState(true);
@@ -142,6 +151,8 @@ export default function EditProductPage() {
             (outlet: Outlet) => ({
               id: outlet.id,
               name: outlet.name,
+              gstin: outlet.gstin ?? null,
+              foodType: outlet.foodType,
             })
           )
         );
@@ -159,6 +170,10 @@ export default function EditProductPage() {
           setIsAvailable(
             firstOutlet.isAvailable
           );
+          setIsVeg(firstOutlet.isVeg);
+          setSgstRate(String(firstOutlet.sgstRate ?? 0));
+          setCgstRate(String(firstOutlet.cgstRate ?? 0));
+          setGstin(outletsData.outlets?.find((outlet: Outlet) => outlet.id === firstOutlet.outletId)?.gstin ?? "");
         }
       } catch (error) {
         console.error(
@@ -225,7 +240,11 @@ export default function EditProductPage() {
             isActive,
             outletId,
             price: Number(price),
+            gstin,
+            sgstRate: sgstRate ? Number(sgstRate) : null,
+            cgstRate: cgstRate ? Number(cgstRate) : null,
             isAvailable,
+            isVeg,
           }),
         }
       );
@@ -479,11 +498,17 @@ export default function EditProductPage() {
             <select
               id="outlet"
               value={outletId}
-              onChange={(event) =>
-                setOutletId(
-                  event.target.value
-                )
-              }
+              onChange={(event) => {
+                const selectedId = event.target.value;
+                setOutletId(selectedId);
+                const selectedOutlet = outlets.find((outlet) => outlet.id === selectedId);
+                setGstin(selectedOutlet?.gstin ?? "");
+                setIsVeg(selectedOutlet?.foodType === "NON_VEG" ? false : true);
+                const selectedPrice = product?.outletProducts.find((entry) => entry.outletId === selectedId);
+                if (selectedPrice) setIsVeg(selectedPrice.isVeg);
+                setSgstRate(String(selectedPrice?.sgstRate ?? 0));
+                setCgstRate(String(selectedPrice?.cgstRate ?? 0));
+              }}
               style={{
                 width: "100%",
                 padding: "12px 14px",
@@ -508,6 +533,30 @@ export default function EditProductPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {outlets.find((outlet) => outlet.id === outletId)?.foodType === "BOTH" ? (
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontWeight: 700, marginBottom: "8px", color: "#111827" }}>Food type</label>
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button type="button" aria-pressed={isVeg} onClick={() => setIsVeg(true)} style={{ border: `2px solid ${isVeg ? "#16a34a" : "#d1d5db"}`, borderRadius: "10px", padding: "10px 16px", background: isVeg ? "#f0fdf4" : "white", fontWeight: 700 }}>🟢 Veg</button>
+                <button type="button" aria-pressed={!isVeg} onClick={() => setIsVeg(false)} style={{ border: `2px solid ${!isVeg ? "#dc2626" : "#d1d5db"}`, borderRadius: "10px", padding: "10px 16px", background: !isVeg ? "#fef2f2" : "white", fontWeight: 700 }}>🔴 Non-veg</button>
+              </div>
+            </div>
+          ) : outletId ? (
+            <p style={{ marginBottom: "16px", fontSize: "14px", fontWeight: 700, color: outlets.find((outlet) => outlet.id === outletId)?.foodType === "NON_VEG" ? "#b91c1c" : "#15803d" }}>
+              {outlets.find((outlet) => outlet.id === outletId)?.foodType === "NON_VEG" ? "🔴 Non-veg label is automatic for this outlet." : "🟢 Veg label is automatic for this outlet."}
+            </p>
+          ) : null}
+
+          <div style={{ marginBottom: "16px" }}>
+            <label htmlFor="gstin" style={{ display: "block", fontWeight: 700, marginBottom: "8px", color: "#111827" }}>Outlet GSTIN (optional)</label>
+            <input id="gstin" value={gstin} onChange={(event) => setGstin(event.target.value.toUpperCase())} maxLength={15} placeholder="Enter GSTIN to apply tax" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px 14px", fontSize: "15px" }} />
+            <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>Leave blank to charge no GST. This GSTIN is shared by the outlet.</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+            <label style={{ fontWeight: 700, color: "#111827" }}>SGST rate (%)<input type="number" min="0" max="100" step="0.01" value={sgstRate} onChange={(event) => setSgstRate(event.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px 14px" }} /></label>
+            <label style={{ fontWeight: 700, color: "#111827" }}>CGST rate (%)<input type="number" min="0" max="100" step="0.01" value={cgstRate} onChange={(event) => setCgstRate(event.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px 14px" }} /></label>
           </div>
 
           <div

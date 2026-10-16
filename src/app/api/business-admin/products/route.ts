@@ -4,6 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { safeHttpsUrl } from "@/lib/validation";
 
+function parseGstin(value: unknown): string | null | "invalid" {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") return "invalid";
+  const gstin = value.trim().toUpperCase();
+  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/.test(gstin)
+    ? gstin
+    : "invalid";
+}
+
+function parseGstRate(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const rate = Number(value);
+  return Number.isFinite(rate) && rate >= 0 && rate <= 100
+    ? rate
+    : null;
+}
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -41,6 +58,8 @@ export async function GET() {
                 id: true,
                 name: true,
                 isActive: true,
+                gstin: true,
+                foodType: true,
               },
             },
           },
@@ -126,6 +145,9 @@ export async function POST(request: Request) {
         : "";
 
     const price = Number(body.price);
+    const gstin = parseGstin(body.gstin);
+    const sgstRate = parseGstRate(body.sgstRate);
+    const cgstRate = parseGstRate(body.cgstRate);
 
     const isAvailable =
       body.isAvailable === undefined
@@ -156,6 +178,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (gstin === "invalid") {
+      return NextResponse.json({ error: "Enter a valid 15-character GSTIN, or leave it blank." }, { status: 400 });
+    }
+    if (gstin && (sgstRate === null || cgstRate === null)) {
+      return NextResponse.json({ error: "Enter SGST and CGST rates between 0 and 100%." }, { status: 400 });
+    }
+
     if (typeof isAvailable !== "boolean") {
       return NextResponse.json(
         {
@@ -174,6 +203,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         name: true,
+        foodType: true,
       },
     });
 
@@ -187,6 +217,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (outlet.foodType === "BOTH" && body.isVeg !== undefined && typeof body.isVeg !== "boolean") {
+      return NextResponse.json({ error: "Choose whether this product is veg or non-veg." }, { status: 400 });
+    }
+    const isVeg = outlet.foodType === "VEG"
+      ? true
+      : outlet.foodType === "NON_VEG"
+        ? false
+        : body.isVeg !== false;
+
+    await prisma.outlet.update({ where: { id: outlet.id }, data: { gstin } });
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -198,7 +239,10 @@ export async function POST(request: Request) {
           create: {
             outletId: outlet.id,
             price,
+            sgstRate: gstin ? sgstRate! : 0,
+            cgstRate: gstin ? cgstRate! : 0,
             isAvailable,
+            isVeg,
           },
         },
       },
@@ -210,6 +254,8 @@ export async function POST(request: Request) {
                 id: true,
                 name: true,
                 isActive: true,
+                gstin: true,
+                foodType: true,
               },
             },
           },
@@ -385,7 +431,11 @@ export async function PATCH(request: Request) {
     if (
       body.outletId !== undefined ||
       body.price !== undefined ||
-      body.isAvailable !== undefined
+      body.isAvailable !== undefined ||
+      body.isVeg !== undefined ||
+      body.gstin !== undefined ||
+      body.sgstRate !== undefined ||
+      body.cgstRate !== undefined
     ) {
       const outletId =
         body.outletId !== undefined
@@ -412,6 +462,8 @@ export async function PATCH(request: Request) {
           },
           select: {
             id: true,
+            gstin: true,
+            foodType: true,
           },
         });
 
@@ -424,6 +476,34 @@ export async function PATCH(request: Request) {
           { status: 404 }
         );
       }
+
+      if (outlet.foodType === "BOTH" && body.isVeg !== undefined && typeof body.isVeg !== "boolean") {
+        return NextResponse.json({ error: "Choose whether this product is veg or non-veg." }, { status: 400 });
+      }
+      const isVeg = outlet.foodType === "VEG"
+        ? true
+        : outlet.foodType === "NON_VEG"
+          ? false
+          : body.isVeg !== undefined
+            ? body.isVeg
+            : existingProduct.outletProducts.find((entry) => entry.outletId === outletId)?.isVeg ?? true;
+
+      const gstin = body.gstin !== undefined
+        ? parseGstin(body.gstin)
+        : outlet.gstin;
+      if (gstin === "invalid") {
+        return NextResponse.json({ error: "Enter a valid 15-character GSTIN, or leave it blank." }, { status: 400 });
+      }
+      const sgstRate = body.sgstRate !== undefined
+        ? parseGstRate(body.sgstRate)
+        : existingProduct.outletProducts.find((entry) => entry.outletId === outletId)?.sgstRate ?? 0;
+      const cgstRate = body.cgstRate !== undefined
+        ? parseGstRate(body.cgstRate)
+        : existingProduct.outletProducts.find((entry) => entry.outletId === outletId)?.cgstRate ?? 0;
+      if (gstin && (sgstRate === null || cgstRate === null)) {
+        return NextResponse.json({ error: "Enter SGST and CGST rates between 0 and 100%." }, { status: 400 });
+      }
+      await prisma.outlet.update({ where: { id: outlet.id }, data: { gstin } });
 
       const existingOutletProduct =
         await prisma.outletProduct.findUnique({
@@ -438,6 +518,9 @@ export async function PATCH(request: Request) {
       const outletProductData: {
         price?: number;
         isAvailable?: boolean;
+        isVeg?: boolean;
+        sgstRate?: number;
+        cgstRate?: number;
       } = {};
 
       if (body.price !== undefined) {
@@ -455,6 +538,10 @@ export async function PATCH(request: Request) {
 
         outletProductData.price = price;
       }
+
+      outletProductData.sgstRate = gstin ? sgstRate! : 0;
+      outletProductData.cgstRate = gstin ? cgstRate! : 0;
+      outletProductData.isVeg = isVeg;
 
       if (body.isAvailable !== undefined) {
         if (typeof body.isAvailable !== "boolean") {
@@ -485,8 +572,11 @@ export async function PATCH(request: Request) {
             productId: existingProduct.id,
             price:
               outletProductData.price ?? 0,
+            sgstRate: outletProductData.sgstRate ?? 0,
+            cgstRate: outletProductData.cgstRate ?? 0,
             isAvailable:
               outletProductData.isAvailable ?? true,
+            isVeg: outletProductData.isVeg ?? true,
           },
         });
       }
@@ -505,6 +595,7 @@ export async function PATCH(request: Request) {
                   id: true,
                   name: true,
                   isActive: true,
+                  gstin: true,
                 },
               },
             },

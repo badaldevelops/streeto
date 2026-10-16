@@ -3,8 +3,11 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
 } from "react";
+
+const cartStorageKey = "streeto:customer-cart";
 
 type CartItem = {
   productId: string;
@@ -21,6 +24,7 @@ type AddCartItem = Omit<CartItem, "quantity">;
 
 type CartContextType = {
   items: CartItem[];
+  clearCart: () => void;
   addItem: (item: AddCartItem) => void;
   decreaseItem: (productId: string) => void;
   cartCount: number;
@@ -45,13 +49,52 @@ export function CartProvider({
   const [items, setItems] = useState<CartItem[]>(
     []
   );
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(cartStorageKey);
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      if (Array.isArray(parsed)) {
+        setItems(parsed.filter((item): item is CartItem =>
+          item && typeof item.productId === "string" &&
+          typeof item.productName === "string" &&
+          typeof item.price === "number" &&
+          Number.isFinite(item.price) &&
+          Number.isInteger(item.quantity) && item.quantity > 0 &&
+          typeof item.companyId === "string" &&
+          typeof item.companyName === "string" &&
+          typeof item.outletId === "string" &&
+          typeof item.outletName === "string"
+        ));
+      }
+    } catch {
+      // Keep the cart usable when browser storage is unavailable or malformed.
+    } finally {
+      setCartLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!cartLoaded) return;
+    try {
+      window.localStorage.setItem(cartStorageKey, JSON.stringify(items));
+    } catch {
+      // Cart storage is best-effort when browser storage is unavailable.
+    }
+  }, [cartLoaded, items]);
 
 function openCart() {
   setIsCartOpen(true);
 }
 
 function closeCart() {
+  setIsCartOpen(false);
+}
+
+function clearCart() {
+  setItems([]);
   setIsCartOpen(false);
 }
 
@@ -178,6 +221,7 @@ function closeCart() {
     <CartContext.Provider
       value={{
         items,
+        clearCart,
         addItem,
         decreaseItem,
         cartCount,

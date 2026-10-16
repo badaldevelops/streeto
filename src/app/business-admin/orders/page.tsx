@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import OrderAcceptanceAlert from "@/app/components/OrderAcceptanceAlert";
 
 type Order = {
   id: string;
@@ -10,12 +9,13 @@ type Order = {
   type: string;
   status: string;
   subtotal: number;
+  sgstAmount: number;
+  cgstAmount: number;
+  gstin: string | null;
   deliveryCharge: number;
   total: number;
+  payment: { status: string; method: string; amount: number; upiReference?: string | null } | null;
   createdAt: string;
-  customerName: string | null;
-  customerPhone: string | null;
-  deliveryAddress: string | null;
   customizationNote: string | null;
 
   outlet: {
@@ -23,31 +23,18 @@ type Order = {
     name: string;
   };
 
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string | null;
-  } | null;
-
   items: {
     id: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
+    sgstAmount: number;
+    cgstAmount: number;
     product: {
       id: string;
       name: string;
     };
   }[];
-
-  payment: {
-    id: string;
-    amount: number;
-    method: string;
-    status: string;
-    transactionId: string | null;
-  } | null;
 
   delivery: {
     id: string;
@@ -129,7 +116,6 @@ export default function BusinessAdminOrdersPage() {
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [storeOpen, setStoreOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pollingEnabled, setPollingEnabled] = useState(false);
   const [error, setError] = useState("");
@@ -193,7 +179,6 @@ export default function BusinessAdminOrdersPage() {
         return;
       }
 
-      setStoreOpen(data.company?.isOpen === true);
       setOrders(data.orders || []);
     } catch (error) {
       if (
@@ -291,7 +276,7 @@ setPollingEnabled(true);
       if (document.visibilityState === "visible") {
         void loadOrders();
       }
-    }, 5000);
+    }, 20000);
 
     return () => window.clearInterval(interval);
   }, [pollingEnabled]);
@@ -379,11 +364,33 @@ setPollingEnabled(true);
     }
   }
 
-  const pendingOrder = orders.find(
-    (order) =>
-      order.status === "PLACED" &&
-      !resolvedOrderIds.current.has(order.id)
-  );
+  async function confirmUpiPayment(orderId: string) {
+    if (!window.confirm("Confirm only after you can see this exact payment credited in your bank or UPI app. Mark it paid?")) return;
+    try {
+      setUpdatingOrderId(orderId);
+      setError("");
+      const response = await fetch("/api/business-admin/orders/status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, action: "confirm-upi-payment" }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Unable to confirm the UPI payment.");
+        return;
+      }
+      ordersRevision.current += 1;
+      setOrders(current => current.map(order => order.id === orderId && order.payment
+        ? { ...order, payment: { ...order.payment, status: "PAID" } }
+        : order));
+      setSuccessMessage("UPI payment confirmed.");
+      void loadOrders();
+    } catch {
+      setError("Unable to confirm the UPI payment.");
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  }
 
    async function assignDelivery(
     orderId: string,
@@ -481,9 +488,10 @@ setPollingEnabled(true);
               </div>
 
               <p className="mt-4 max-w-xl text-sm font-medium leading-6 text-orange-50 sm:text-base">
-                Manage customer orders, update their status
+                Manage incoming orders, update their status
                 and keep your kitchen and delivery team in sync.
               </p>
+              <p className="mt-2 text-xs font-semibold text-orange-100">Showing orders from the last 72 hours.</p>
             </div>
 
             <div className="flex flex-wrap items-start gap-3">
@@ -704,6 +712,20 @@ setPollingEnabled(true);
                           </p>
                         </div>
 
+                        <div className={`rounded-xl px-4 py-2 ${order.payment?.status === "PAID" ? "bg-green-50" : "bg-amber-50"}`}>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider ${order.payment?.status === "PAID" ? "text-green-700" : "text-amber-700"}`}>
+                            Payment
+                          </p>
+                          <p className="text-sm font-black text-gray-900">
+                            {order.payment?.status ?? "Not recorded"}
+                          </p>
+                          {order.payment?.method === "UPI" && order.payment.status === "PENDING" && (
+                            <button type="button" disabled={updatingOrderId === order.id} onClick={() => void confirmUpiPayment(order.id)} className="mt-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
+                              {updatingOrderId === order.id ? "Saving..." : "Confirm bank credit"}
+                            </button>
+                          )}
+                        </div>
+
                       </div>
 
                     </div>
@@ -782,21 +804,8 @@ setPollingEnabled(true);
                     <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
                       <div className="rounded-2xl bg-gray-50 p-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                          Customer
-                        </p>
-
-                        <p className="mt-2 truncate font-extrabold text-gray-900">
-                          {order.customerName ||
-                            order.customer?.name ||
-                            "Guest Customer"}
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                          {order.customerPhone ||
-                            order.customer?.phone ||
-                            "No phone"}
-                        </p>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider ${order.type === "DINE_IN" ? "text-red-600" : "text-gray-400"}`}>{order.type === "DINE_IN" ? "Dine In order" : order.type === "DELIVERY" ? "Delivery order" : "Self Receive order"}</p>
+                        <p className="mt-2 truncate font-extrabold text-gray-900">Order #{order.orderNumber}</p>
                       </div>
 
                       <div className="rounded-2xl bg-gray-50 p-4">
@@ -806,24 +815,6 @@ setPollingEnabled(true);
 
                         <p className="mt-2 font-extrabold text-gray-900">
                           🏪 {order.outlet.name}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-gray-50 p-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                          Payment
-                        </p>
-
-                        <p className="mt-2 font-extrabold text-gray-900">
-                          {order.payment
-                            ? order.payment.method
-                            : "Not available"}
-                        </p>
-
-                        <p className="mt-1 text-xs font-semibold text-gray-500">
-                          {order.payment
-                            ? order.payment.status
-                            : "No payment record"}
                         </p>
                       </div>
 
@@ -954,6 +945,14 @@ setPollingEnabled(true);
                           </span>
                         </div>
 
+                        {order.gstin && (
+                          <>
+                            <div className="mt-3 flex justify-between text-sm text-gray-500"><span>SGST</span><span className="font-semibold text-gray-800">{formatMoney(order.sgstAmount)}</span></div>
+                            <div className="mt-3 flex justify-between text-sm text-gray-500"><span>CGST</span><span className="font-semibold text-gray-800">{formatMoney(order.cgstAmount)}</span></div>
+                            <p className="mt-2 text-xs text-gray-500">GSTIN: {order.gstin}</p>
+                          </>
+                        )}
+
                         <div className="mt-4 flex justify-between border-t border-gray-100 pt-4">
                           <span className="text-lg font-black text-gray-900">
                             Total
@@ -976,29 +975,7 @@ setPollingEnabled(true);
                             {order.customizationNote}
                           </p>
                         </div>
-                      )}
 
-                      {/* Address */}
-                      {order.deliveryAddress && (
-                        <div className="mt-5 rounded-2xl border border-gray-100 bg-white p-5">
-
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-lg">
-                              📍
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                                Delivery Address
-                              </p>
-
-                              <p className="mt-2 text-sm font-semibold leading-6 text-gray-800">
-                                {order.deliveryAddress}
-                              </p>
-                            </div>
-                          </div>
-
-                        </div>
                       )}
 
                                            {/* Delivery Staff Assignment */}
@@ -1102,20 +1079,6 @@ setPollingEnabled(true);
       </div>
 
       </div>
-      {pendingOrder && (
-        <OrderAcceptanceAlert
-          busy={updatingOrderId === pendingOrder.id}
-          error={error}
-          soundActive={storeOpen}
-          onAccept={() =>
-            updateOrderStatus(pendingOrder.id, "ACCEPTED")
-          }
-          onReject={() =>
-            updateOrderStatus(pendingOrder.id, "CANCELLED")
-          }
-          order={pendingOrder}
-        />
-      )}
     </main>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import BusinessOrderMonitor from "@/app/components/BusinessOrderMonitor";
 import BusinessPushNotifications, { prepareBusinessAlertsFromGesture } from "@/app/components/BusinessPushNotifications";
 
 type User = {
@@ -58,7 +57,12 @@ export default function BusinessAdminPage() {
         }
 
         if (meData.user?.role !== "BUSINESS_ADMIN") {
-          router.replace("/");
+          const destination = meData.user?.role === "SUPER_ADMIN"
+            ? "https://admin.qtoo.in/admin"
+            : meData.user?.role === "DELIVERY_STAFF"
+              ? "https://qtoo.in/delivery"
+              : "https://qtoo.in/";
+          window.location.replace(destination);
           return;
         }
 
@@ -197,7 +201,7 @@ export default function BusinessAdminPage() {
       iconBg: "bg-red-500",
     },
     {
-      title: "Outlets",
+      title: "Outlet",
       description: "Manage locations and delivery settings.",
       icon: "🏪",
       href: "/business-admin/outlets",
@@ -214,11 +218,19 @@ export default function BusinessAdminPage() {
     },
     {
       title: "Sales",
-      description: "View sales and payment summaries.",
+      description: "View sales and order summaries.",
       icon: "📈",
       href: "/business-admin/sales",
       bg: "bg-green-50",
       iconBg: "bg-green-500",
+    },
+    {
+      title: "Outlet earnings",
+      description: "Review net outlet earnings and request withdrawals.",
+      icon: "💸",
+      href: "/business-admin/payouts",
+      bg: "bg-emerald-50",
+      iconBg: "bg-emerald-600",
     },
     {
       title: "Settings",
@@ -326,8 +338,6 @@ products and outlets from one place.
         {alertSetupNotice && company?.isOpen && (
           <p aria-live="polite" className="mt-2 text-sm font-semibold text-blue-800">{alertSetupNotice}</p>
         )}
-        <BusinessOrderMonitor isOpen={Boolean(company?.isOpen)} />
-
         {/* ERROR */}
         {error && (
           <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">

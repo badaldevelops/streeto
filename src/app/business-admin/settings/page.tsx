@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CashfreePayoutSettings from "../../components/CashfreePayoutSettings";
 
 type Company = {
   id: string;
   name: string;
+  upiId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -12,6 +14,7 @@ type Company = {
 export default function BusinessAdminSettingsPage() {
   const [company, setCompany] = useState<Company | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [upiId, setUpiId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -42,6 +45,7 @@ export default function BusinessAdminSettingsPage() {
 
       setCompany(result.company);
       setBusinessName(result.company.name);
+      setUpiId(result.company.upiId || "");
     } catch {
       setError(
         "Unable to load business settings."
@@ -70,6 +74,7 @@ export default function BusinessAdminSettingsPage() {
           },
           body: JSON.stringify({
             name: businessName,
+            upiId,
           }),
         }
       );
@@ -86,6 +91,7 @@ export default function BusinessAdminSettingsPage() {
 
       setCompany(result.company);
       setBusinessName(result.company.name);
+      setUpiId(result.company.upiId || "");
 
       setMessage(
         "Business settings updated successfully."
@@ -241,6 +247,22 @@ export default function BusinessAdminSettingsPage() {
               across the platform.
             </p>
 
+            <label htmlFor="businessUpiId" className="mb-2 mt-6 flex items-center gap-2 text-sm font-extrabold text-gray-700">
+              <span>🏦</span><span>Business UPI ID</span>
+            </label>
+            <input
+              id="businessUpiId"
+              type="text"
+              autoComplete="off"
+              value={upiId}
+              onChange={(event) => setUpiId(event.target.value)}
+              placeholder="business@bank"
+              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
+            />
+            <p className="mt-2 text-xs font-medium text-gray-500">
+              Customer UPI payments go directly to this ID. Super Admin can view it with outlet settlement details.
+            </p>
+
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -266,6 +288,8 @@ export default function BusinessAdminSettingsPage() {
             </div>
           </div>
         </section>
+
+        <CashfreePayoutSettings />
 
         {/* Business Details */}
         {company && (

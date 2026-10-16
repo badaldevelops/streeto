@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 112" fill="none">
+  <text x="3" y="84" fill="#F3222B" stroke="#171717" stroke-width="7" paint-order="stroke" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="91" font-weight="900" letter-spacing="-8">Q</text>
+  <text x="94" y="84" fill="#171717" stroke="#fff" stroke-width="10" paint-order="stroke" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="76" font-weight="900" letter-spacing="-6">TOO</text>
+  <text x="99" y="105" fill="#171717" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="900" letter-spacing="1.5">GOOD FOOD. LESS WAIT.</text>
+  <path d="M26 36c-8-2-12-9-9-16 2-7 9-10 16-8 2-8 9-13 17-12 7 1 11 6 12 12 8-2 16 3 17 11 1 6-3 11-8 13l-45 0Z" fill="#fff" stroke="#171717" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M31 27h36" stroke="#171717" stroke-width="4" stroke-linecap="round"/>
+</svg>

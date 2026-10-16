@@ -52,42 +52,21 @@ export async function GET() {
             name: true,
           },
         },
-        payment: {
-          select: {
-            method: true,
-            status: true,
-          },
-        },
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    const totalSales = orders.reduce(
-      (sum, order) => sum + order.total,
-      0
-    );
+    const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
 
     const totalOrders = orders.length;
-
-    const paidOrders = orders.filter(
-      (order) => order.payment?.status === "PAID"
-    ).length;
-
-    const pendingPayments = orders.filter(
-      (order) =>
-        !order.payment ||
-        order.payment.status === "PENDING"
-    ).length;
 
     return NextResponse.json({
       success: true,
       summary: {
         totalSales,
         totalOrders,
-        paidOrders,
-        pendingPayments,
       },
       orders,
     });

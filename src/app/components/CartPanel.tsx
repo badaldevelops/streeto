@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCart } from "./CartProvider";
 
-export default function CartPanel() {
+export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref?: string }) {
   const {
     items,
     addItem,
@@ -174,13 +175,14 @@ export default function CartPanel() {
                 </span>
               </div>
 
-              <button
-                type="button"
+              <Link
+                href={checkoutHref}
+                prefetch
                 onClick={closeCart}
-                className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-4 text-sm font-black text-white shadow-lg shadow-orange-200 transition hover:scale-[1.01]"
+                className="block w-full rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-4 text-center text-sm font-black text-white shadow-lg shadow-orange-200 transition hover:scale-[1.01]"
               >
                 Continue to Checkout →
-              </button>
+              </Link>
             </div>
           </>
         )}

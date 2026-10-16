@@ -25,6 +25,8 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        isActive: true,
+        verificationStatus: true,
       },
       orderBy: {
         name: "asc",
@@ -47,72 +49,43 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function PATCH(request: Request) {
   try {
     const admin = await getCurrentUser();
-
     if (!admin) {
-      return NextResponse.json(
-        { error: "Please login first." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Please login first." }, { status: 401 });
     }
-
     if (admin.role !== "SUPER_ADMIN") {
-      return NextResponse.json(
-        { error: "Access denied." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
     }
 
-    const body = (await request.json()) as {
-      name?: string;
-    };
-
-    const name = body.name?.trim();
-
-    if (!name) {
-      return NextResponse.json(
-        { error: "Business name is required." },
-        { status: 400 }
-      );
+    const body = (await request.json()) as { companyId?: unknown; isActive?: unknown };
+    if (typeof body.companyId !== "string" || !body.companyId || typeof body.isActive !== "boolean") {
+      return NextResponse.json({ error: "Business and active status are required." }, { status: 400 });
     }
 
-    const existingCompany = await prisma.company.findFirst({
-      where: {
-        name,
-      },
-    });
-
-    if (existingCompany) {
-      return NextResponse.json(
-        { error: "A business with this name already exists." },
-        { status: 409 }
-      );
+    if (body.isActive) {
+      const company = await prisma.company.findUnique({
+        where: { id: body.companyId },
+        select: { verificationStatus: true },
+      });
+      if (!company) return NextResponse.json({ error: "Business not found." }, { status: 404 });
+      if (company.verificationStatus !== "APPROVED") {
+        return NextResponse.json({ error: "Review the verification request before activating this business." }, { status: 409 });
+      }
     }
 
-    const company = await prisma.company.create({
-      data: {
-        name,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
+    const result = await prisma.company.updateMany({
+      where: { id: body.companyId },
+      data: { isActive: body.isActive },
     });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Business not found." }, { status: 404 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      company,
-    });
+    return NextResponse.json({ success: true, companyId: body.companyId, isActive: body.isActive });
   } catch (error) {
-    console.error("Create company error:", error);
-
-    return NextResponse.json(
-      {
-        error: "Unable to create business.",
-      },
-      { status: 500 }
-    );
+    console.error("Update business status error:", error);
+    return NextResponse.json({ error: "Unable to update business status." }, { status: 500 });
   }
 }

@@ -273,9 +273,6 @@ export default function GoogleLocationPicker({
             📍 Choose Outlet Location
           </h3>
 
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            Map par tap karo ya marker ko drag karo.
-          </p>
         </div>
 
         <button
@@ -334,11 +331,6 @@ export default function GoogleLocationPicker({
         />
       </div>
 
-      {/* Helper */}
-      <p className="mt-2 text-[11px] font-medium text-slate-400">
-        💡 Current location ke liye button dabao, ya map
-        par directly exact location select karo.
-      </p>
     </div>
   );
 }

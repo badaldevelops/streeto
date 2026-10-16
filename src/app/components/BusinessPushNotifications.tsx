@@ -43,17 +43,26 @@ async function saveSubscription(subscription: PushSubscription) {
 // their permission prompt; the app itself has no permission or sound toggle.
 export function prepareBusinessAlertsFromGesture() {
   if (setupInProgress) return setupInProgress;
+
+  // Local dashboard sound is independent of background push. Persist the
+  // gesture-authorized audio state even if this browser cannot set up push.
+  const audioReady = enableOrderSounds();
+  void audioReady.then((ready) => {
+    if (!ready) return;
+    try { window.sessionStorage.setItem(soundPreferenceKey, "true"); } catch { /* Session only. */ }
+    window.dispatchEvent(new Event("streeto:business-audio-ready"));
+  });
+
   if (!supportsPush()) {
     return Promise.resolve("This browser does not support background order alerts.");
   }
   if (isIosDevice() && !isInstalledOnIos()) {
-    return Promise.resolve("On iPhone or iPad, install StreetO from Safari using Share → Add to Home Screen, then open it from that icon.");
+    return Promise.resolve("On iPhone or iPad, install Qtoo from Safari using Share → Add to Home Screen, then open it from that icon.");
   }
 
   const permissionRequest = Notification.permission === "granted"
     ? Promise.resolve<NotificationPermission>("granted")
     : Notification.requestPermission();
-  const audioReady = enableOrderSounds();
 
   setupInProgress = (async () => {
     const permission = await permissionRequest;
@@ -73,10 +82,6 @@ export function prepareBusinessAlertsFromGesture() {
       });
     const result = await saveSubscription(subscription);
     window.dispatchEvent(new Event("streeto:business-alerts-updated"));
-    if (await audioReady) {
-      try { window.sessionStorage.setItem(soundPreferenceKey, "true"); } catch { /* Session only. */ }
-      window.dispatchEvent(new Event("streeto:business-audio-ready"));
-    }
     return result.pushConfigured === false
       ? "The device is saved, but the Cloudflare Worker is missing its push key."
       : null;
@@ -171,13 +176,13 @@ export default function BusinessPushNotifications({ isOpen }: { isOpen: boolean 
   if (state === "checking") guidance = "Checking this device’s alert setup…";
   if (state === "paused") guidance = "Order alerts are paused while your store is closed.";
   if (state === "waiting") guidance = "Order alerts will activate on this device when setup is complete.";
-  if (state === "ready") guidance = "Order alerts are active while your store is open. Set StreetO notifications to Alert and raise notification volume in your phone settings for a louder alert.";
+  if (state === "ready") guidance = "Order alerts are active while your store is open. Set Qtoo notifications to Alert and raise notification volume in your phone settings for a louder alert.";
   if (state === "blocked") guidance = "Notifications are blocked for this site. Allow them in browser or phone settings, then reopen this dashboard.";
   if (state === "unsupported") {
     const ios = typeof navigator !== "undefined" && isIosDevice();
     guidance = ios
-      ? "Install StreetO from Safari using Share → Add to Home Screen, then open it from that icon. iPhone and iPad need an installed app for background alerts."
-      : "Open StreetO directly in Chrome, Edge, Firefox, or Safari. Embedded browsers may not support background alerts.";
+      ? "Install Qtoo from Safari using Share → Add to Home Screen, then open it from that icon. iPhone and iPad need an installed app for background alerts."
+      : "Open Qtoo directly in Chrome, Edge, Firefox, or Safari. Embedded browsers may not support background alerts.";
   }
   if (state === "error") guidance = "Order alert setup could not be checked.";
 
@@ -185,6 +190,7 @@ export default function BusinessPushNotifications({ isOpen }: { isOpen: boolean 
     <section className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
       <h2 className="font-black text-blue-950">New order alerts</h2>
       <p aria-live="polite" className="mt-1 text-sm leading-5 text-blue-800">{message || guidance}</p>
+      <p className="mt-2 text-xs leading-5 text-blue-700">The custom sound plays while this dashboard is open and your store is open. Background alerts use your phone’s notification sound and settings.</p>
     </section>
   );
 }

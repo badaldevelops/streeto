@@ -53,3 +53,5 @@ next-env.d.ts
 .vinext/
 /.wrangler/
 .cloudflare/
+/.vinext-apps/
+/.qtoo-app-build/

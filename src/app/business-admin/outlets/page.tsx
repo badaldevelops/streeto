@@ -7,7 +7,10 @@ import GoogleLocationPicker from "@/app/components/GoogleLocationPicker";
 type Outlet = {
   id: string;
   name: string;
+  city: string | null;
+  locality: string | null;
   businessType: string;
+  foodType: "VEG" | "NON_VEG" | "BOTH";
 locationUpdatedAt: string | null;
   address: string | null;
   phone: string | null;
@@ -15,6 +18,7 @@ locationUpdatedAt: string | null;
   longitude: number | null;
   deliveryRadiusKm: number;
   deliveryCharge: number;
+  deliveryEnabled: boolean;
   isActive: boolean;
   createdAt: string;
   _count: {
@@ -25,24 +29,32 @@ locationUpdatedAt: string | null;
 
 type OutletForm = {
   name: string;
+  city: string;
+  locality: string;
   businessType: string;
+  foodType: "VEG" | "NON_VEG" | "BOTH";
   address: string;
   phone: string;
   latitude: string;
   longitude: string;
   deliveryRadiusKm: string;
   deliveryCharge: string;
+  deliveryEnabled: boolean;
 };
 
 const emptyForm: OutletForm = {
   name: "",
+  city: "",
+  locality: "",
   businessType: "FIXED_SHOP",
+  foodType: "BOTH",
   address: "",
   phone: "",
   latitude: "",
   longitude: "",
   deliveryRadiusKm: "5",
   deliveryCharge: "0",
+  deliveryEnabled: false,
 };
 
 export default function BusinessAdminOutletsPage() {
@@ -61,6 +73,7 @@ export default function BusinessAdminOutletsPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [updatingDeliveryOutletId, setUpdatingDeliveryOutletId] = useState<string | null>(null);
 
   async function loadOutlets() {
     try {
@@ -126,20 +139,15 @@ export default function BusinessAdminOutletsPage() {
     checkLogin();
   }, [router]);
 
-  function openCreateForm() {
-    setEditingOutlet(null);
-    setForm(emptyForm);
-    setError("");
-    setSuccess("");
-    setShowForm(true);
-  }
-
   function openEditForm(outlet: Outlet) {
     setEditingOutlet(outlet);
 
     setForm({
       name: outlet.name,
+      city: outlet.city || "",
+      locality: outlet.locality || "",
       businessType: outlet.businessType,
+      foodType: outlet.foodType,
       address: outlet.address || "",
       phone: outlet.phone || "",
       latitude:
@@ -152,8 +160,17 @@ export default function BusinessAdminOutletsPage() {
           : "",
       deliveryRadiusKm: String(outlet.deliveryRadiusKm),
       deliveryCharge: String(outlet.deliveryCharge),
+      deliveryEnabled: outlet.deliveryEnabled,
     });
 
+    setError("");
+    setSuccess("");
+    setShowForm(true);
+  }
+
+  function openCreateForm() {
+    setEditingOutlet(null);
+    setForm(emptyForm);
     setError("");
     setSuccess("");
     setShowForm(true);
@@ -170,14 +187,35 @@ export default function BusinessAdminOutletsPage() {
     setError("");
   }
 
-  function updateForm(
-    field: keyof OutletForm,
-    value: string
+  function updateForm<K extends keyof OutletForm>(
+    field: K,
+    value: OutletForm[K]
   ) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
+  }
+
+  async function toggleOutletDelivery(outlet: Outlet) {
+    setUpdatingDeliveryOutletId(outlet.id);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await fetch("/api/business-admin/outlets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outletId: outlet.id, deliveryEnabled: !outlet.deliveryEnabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to update delivery setting.");
+      setOutlets((current) => current.map((entry) => entry.id === outlet.id ? { ...entry, deliveryEnabled: !outlet.deliveryEnabled } : entry));
+      setSuccess(`${outlet.name}: delivery ${!outlet.deliveryEnabled ? "enabled" : "disabled"}.`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Unable to update delivery setting.");
+    } finally {
+      setUpdatingDeliveryOutletId(null);
+    }
   }
 
   async function updateCartLocation(outlet: Outlet) {
@@ -278,6 +316,10 @@ export default function BusinessAdminOutletsPage() {
         setError("Outlet name is required.");
         return;
       }
+      if (!form.city.trim() || !form.locality.trim()) {
+        setError("Enter the outlet city and locality so customers can find it by area.");
+        return;
+      }
 
       if (!Number.isFinite(radius) || radius <= 0) {
         setError(
@@ -315,39 +357,28 @@ export default function BusinessAdminOutletsPage() {
         return;
       }
 
-      const isEditing = Boolean(editingOutlet);
-
       const response = await fetch(
         "/api/business-admin/outlets",
         {
-          method: isEditing ? "PATCH" : "POST",
+          method: editingOutlet ? "PATCH" : "POST",
           headers: {
             "Content-Type": "application/json",
           },
-   body: JSON.stringify(
-  isEditing
-    ? {
+          body: JSON.stringify({
         outletId: editingOutlet?.id,
         name: form.name.trim(),
+        city: form.city.trim(),
+        locality: form.locality.trim(),
         businessType: form.businessType,
+        foodType: form.foodType,
         address: form.address.trim(),
         phone: form.phone.trim(),
         deliveryRadiusKm: radius,
         deliveryCharge: charge,
+        deliveryEnabled: form.deliveryEnabled,
         latitude,
         longitude,
-      }
-    : {
-        name: form.name.trim(),
-        businessType: form.businessType,
-        address: form.address.trim(),
-        phone: form.phone.trim(),
-        deliveryRadiusKm: radius,
-        deliveryCharge: charge,
-        latitude,
-        longitude,
-      }
-),
+          }),
         }
       );
 
@@ -356,18 +387,12 @@ export default function BusinessAdminOutletsPage() {
       if (!response.ok) {
         setError(
           data.error ||
-            `Unable to ${
-              isEditing ? "update" : "create"
-            } outlet.`
+            "Unable to update outlet."
         );
         return;
       }
 
-      setSuccess(
-        isEditing
-          ? "Outlet updated successfully."
-          : "Outlet created successfully."
-      );
+      setSuccess(editingOutlet ? "Outlet updated successfully." : "Outlet created successfully.");
 
       setShowForm(false);
       setEditingOutlet(null);
@@ -461,7 +486,7 @@ export default function BusinessAdminOutletsPage() {
                   </p>
 
                   <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                    Outlets
+                    Outlet
                   </h1>
                 </div>
               </div>
@@ -474,19 +499,21 @@ export default function BusinessAdminOutletsPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
+              {!loading && outlets.length === 0 && (
+                <button
+                  type="button"
+                  onClick={openCreateForm}
+                  className="rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-orange-700 shadow-sm transition hover:bg-orange-50"
+                >
+                  + Add Outlet
+                </button>
+              )}
               <button
                 onClick={loadOutlets}
                 disabled={loading}
                 className="rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Loading..." : "↻ Refresh"}
-              </button>
-
-              <button
-                onClick={openCreateForm}
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-orange-600 shadow-lg transition hover:-translate-y-0.5 hover:bg-orange-50"
-              >
-                + Add Outlet
               </button>
             </div>
           </div>
@@ -618,14 +645,12 @@ export default function BusinessAdminOutletsPage() {
                 <div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
-                      {editingOutlet ? "✏️" : "🏪"}
+                      ✏️
                     </div>
 
                     <div>
                       <h2 className="text-xl font-extrabold text-gray-900">
-                        {editingOutlet
-                          ? "Edit Outlet"
-                          : "Add New Outlet"}
+                        {editingOutlet ? "Edit Outlet" : "Add Your Outlet"}
                       </h2>
 
                       <p className="mt-1 text-sm font-medium text-gray-500">
@@ -725,6 +750,18 @@ export default function BusinessAdminOutletsPage() {
   </div>
 </div>
 
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">Menu type</label>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {(["VEG", "NON_VEG", "BOTH"] as const).map((foodType) => (
+                      <button key={foodType} type="button" aria-pressed={form.foodType === foodType} onClick={() => updateForm("foodType", foodType)} className={`rounded-2xl border-2 p-4 text-left transition ${form.foodType === foodType ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-200 bg-white hover:border-emerald-300"}`}>
+                        <span className="font-black text-emerald-700">{foodType === "VEG" ? "🟢 Veg" : foodType === "NON_VEG" ? "🔴 Non-veg" : "🟢 Veg + 🔴 Non-veg"}</span>
+                        <span className="mt-1 block text-xs text-gray-500">{foodType === "BOTH" ? "Choose the type for each product" : "Product labels are applied automatically"}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Phone */}
                 <Field label="Phone" icon="📞">
                   <input
@@ -742,6 +779,28 @@ export default function BusinessAdminOutletsPage() {
                 </Field>
 
                 {/* Address */}
+                <Field label="City" required icon="🏙️">
+                  <input
+                    value={form.city}
+                    onChange={(event) => updateForm("city", event.target.value)}
+                    placeholder="City name, e.g. Meerut"
+                    maxLength={100}
+                    required
+                    className="input-style"
+                  />
+                </Field>
+
+                <Field label="Locality / neighbourhood" required icon="📍">
+                  <input
+                    value={form.locality}
+                    onChange={(event) => updateForm("locality", event.target.value)}
+                    placeholder="Enter the locality customers use"
+                    maxLength={100}
+                    required
+                    className="input-style"
+                  />
+                </Field>
+
                 <div className="sm:col-span-2">
                   <Field label="Address" icon="📍">
                     <textarea
@@ -876,9 +935,7 @@ export default function BusinessAdminOutletsPage() {
                 >
                   {saving
                     ? "Saving..."
-                    : editingOutlet
-                    ? "✓ Update Outlet"
-                    : "+ Create Outlet"}
+                    : editingOutlet ? "✓ Update Outlet" : "✓ Create Outlet"}
                 </button>
               </div>
             </form>
@@ -914,16 +971,9 @@ export default function BusinessAdminOutletsPage() {
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Create your first outlet to start managing
-              locations and delivery settings.
+              Add your business outlet to make it visible to customers and manage its location and delivery settings.
             </p>
 
-            <button
-              onClick={openCreateForm}
-              className="mt-6 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
-            >
-              + Add Your First Outlet
-            </button>
           </div>
         )}
 
@@ -947,9 +997,10 @@ export default function BusinessAdminOutletsPage() {
                         {outlet.name}
                       </h2>
 
-                      <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                        Business Outlet
-                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1 text-xs font-semibold">
+                        {(outlet.foodType === "VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-green-50 px-2 py-0.5 text-green-700">🟢 Veg</span>}
+                        {(outlet.foodType === "NON_VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-red-50 px-2 py-0.5 text-red-700">🔴 Non-veg</span>}
+                      </div>
                     </div>
                   </div>
 
@@ -980,6 +1031,9 @@ export default function BusinessAdminOutletsPage() {
                         {outlet.address ||
                           "No address added"}
                       </p>
+                      <p className="mt-2 text-xs font-bold text-orange-700">
+                        {outlet.city || "City not set"} · {outlet.locality || "Locality not set"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1007,6 +1061,15 @@ export default function BusinessAdminOutletsPage() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-gray-400">Offer Delivery</p>
+                        <p className="mt-1 text-sm font-bold text-gray-800">{outlet.deliveryEnabled ? "Delivery, Self Receive & Dine In" : "Self Receive & Dine In"}</p>
+                      </div>
+                      <button type="button" role="switch" aria-checked={outlet.deliveryEnabled} aria-label={`Turn delivery ${outlet.deliveryEnabled ? "off" : "on"} for ${outlet.name}`} disabled={updatingDeliveryOutletId === outlet.id} onClick={() => void toggleOutletDelivery(outlet)} className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50 ${outlet.deliveryEnabled ? "bg-emerald-500" : "bg-gray-300"}`}>
+                        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${outlet.deliveryEnabled ? "left-6" : "left-1"}`} />
+                      </button>
+                    </div>
                     <InfoBox
                       icon="📏"
                       label="Radius"

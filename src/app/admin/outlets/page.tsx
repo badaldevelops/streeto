@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import "./outlets.css";
 
@@ -16,6 +16,8 @@ type OutletUser = {
 type Outlet = {
   id: string;
   name: string;
+  city?: string | null;
+  locality?: string | null;
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -33,31 +35,21 @@ type OutletsResponse = {
   error?: string;
 };
 
+type Company = { id: string; name: string; isActive: boolean };
+
 function getCity(outlet: Outlet) {
-  const address = outlet.address?.trim();
-
-  if (!address) {
-    return "Unknown";
-  }
-
-  const parts = address
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length > 1) {
-    return parts[parts.length - 1];
-  }
-
-  const words = address.split(/\s+/).filter(Boolean);
-
-  return words[words.length - 1] || "Unknown";
+  return outlet.city?.trim() || "City not set";
 }
 
 export default function AdminOutletsPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [newOutlet, setNewOutlet] = useState({ companyId: "", name: "", city: "", address: "", phone: "" });
 
   useEffect(() => {
     async function loadOutlets() {
@@ -94,7 +86,38 @@ export default function AdminOutletsPage() {
     }
 
     loadOutlets();
+    fetch("/api/admin/companies", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (response.ok) setCompanies(data.companies || []);
+      })
+      .catch((loadError) => console.error("Load businesses for outlet creation error:", loadError));
   }, []);
+
+  async function createOutlet(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreating(true);
+    setCreateError("");
+    try {
+      const response = await fetch("/api/admin/outlets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOutlet),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setCreateError(data.error || "Unable to create outlet.");
+        return;
+      }
+      setOutlets((current) => [...current, data.outlet]);
+      setNewOutlet({ companyId: "", name: "", city: "", address: "", phone: "" });
+      setShowCreateForm(false);
+    } catch {
+      setCreateError("Unable to create outlet. Please try again.");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const cities = useMemo(() => {
     const grouped: Record<string, Outlet[]> = {};
@@ -228,7 +251,33 @@ export default function AdminOutletsPage() {
               <span>Active</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCreateForm((open) => !open)}
+            className="rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-orange-700 shadow transition hover:bg-orange-50"
+          >
+            {showCreateForm ? "Close" : "+ Add Outlet"}
+          </button>
         </section>
+
+        {showCreateForm && (
+          <form onSubmit={createOutlet} className="mb-8 grid gap-4 rounded-2xl border border-orange-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+            <h2 className="text-lg font-extrabold text-slate-900 sm:col-span-2">Create outlet as Super Admin</h2>
+            <select required value={newOutlet.companyId} onChange={(event) => setNewOutlet((current) => ({ ...current, companyId: event.target.value }))} className="rounded-xl border border-slate-200 px-4 py-3 sm:col-span-2">
+              <option value="">Choose business</option>
+              {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+            </select>
+            <input required value={newOutlet.name} onChange={(event) => setNewOutlet((current) => ({ ...current, name: event.target.value }))} placeholder="Outlet name" className="rounded-xl border border-slate-200 px-4 py-3" />
+            <input value={newOutlet.phone} onChange={(event) => setNewOutlet((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone (optional)" className="rounded-xl border border-slate-200 px-4 py-3" />
+            <input value={newOutlet.city} onChange={(event) => setNewOutlet((current) => ({ ...current, city: event.target.value }))} placeholder="City (optional; Business Admin can update)" maxLength={100} className="rounded-xl border border-slate-200 px-4 py-3" />
+            <input value={newOutlet.address} onChange={(event) => setNewOutlet((current) => ({ ...current, address: event.target.value }))} placeholder="Address (optional)" className="rounded-xl border border-slate-200 px-4 py-3 sm:col-span-2" />
+            {createError && <p className="text-sm font-semibold text-red-600 sm:col-span-2">{createError}</p>}
+            <button disabled={creating || companies.length === 0} className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white disabled:opacity-50 sm:col-span-2">
+              {creating ? "Creating…" : "Create Outlet"}
+            </button>
+          </form>
+        )}
 
         <section className="cities-section">
           <div className="cities-heading">
@@ -324,7 +373,7 @@ export default function AdminOutletsPage() {
         </section>
 
         <footer className="outlets-footer">
-          Streeto · Super Admin
+          Qtoo · Super Admin
         </footer>
       </div>
     </main>

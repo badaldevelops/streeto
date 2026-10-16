@@ -45,6 +45,25 @@ export async function PATCH(request: Request) {
     const orderId = body.orderId;
     const status = body.status;
 
+    if (body.action === "confirm-upi-payment") {
+      if (typeof orderId !== "string" || !orderId) {
+        return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
+      }
+      const order = await prisma.order.findFirst({
+        where: { id: orderId, outlet: { companyId: user.companyId } },
+        select: { id: true, orderNumber: true, payment: { select: { method: true, status: true } } },
+      });
+      if (!order) return NextResponse.json({ error: "Order not found or access denied." }, { status: 404 });
+      if (order.payment?.method !== "UPI" || order.payment.status !== "PENDING") {
+        return NextResponse.json({ error: "This order has no pending direct UPI payment." }, { status: 409 });
+      }
+      await prisma.payment.update({
+        where: { orderId: order.id },
+        data: { status: "PAID" },
+      });
+      return NextResponse.json({ success: true, orderId: order.id, paymentStatus: "PAID" });
+    }
+
     if (!orderId || !status) {
       return NextResponse.json(
         {
@@ -78,6 +97,7 @@ export async function PATCH(request: Request) {
       select: {
         id: true,
         status: true,
+        payment: { select: { status: true } },
       },
     });
 
@@ -88,6 +108,13 @@ export async function PATCH(request: Request) {
             "Order not found or access denied.",
         },
         { status: 404 }
+      );
+    }
+
+    if (status !== "CANCELLED" && order.payment?.status !== "PAID") {
+      return NextResponse.json(
+        { error: "Check the payment in your bank or UPI app and confirm it before accepting this order." },
+        { status: 409 }
       );
     }
 

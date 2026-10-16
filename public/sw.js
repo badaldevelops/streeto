@@ -7,17 +7,30 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(message.title || "New StreetO order", {
-      body: message.body || "Open the dashboard to review the order.",
-      icon: "/icon.svg",
-      badge: "/icon.svg",
-      tag: message.tag || "streeto-new-order",
-      renotify: true,
-      requireInteraction: true,
-      silent: false,
-      vibrate: [800, 200, 800, 200, 1200, 250, 1200],
-      timestamp: Date.now(),
-      data: message.data || { url: "/business-admin" },
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const dashboardWindows = windows.filter((client) => {
+        const url = new URL(client.url);
+        return url.origin === self.location.origin && url.pathname.startsWith("/business-admin");
+      });
+      const visibleDashboard = dashboardWindows.filter((client) => client.visibilityState === "visible");
+
+      if (visibleDashboard.length) {
+        visibleDashboard.forEach((client) => client.postMessage({ type: "QTOO_NEW_ORDER_PAID" }));
+        return;
+      }
+
+      return self.registration.showNotification(message.title || "New Qtoo order", {
+        body: message.body || "Open the dashboard to review the order.",
+        icon: "/icon.png",
+        badge: "/icon.png",
+        tag: message.tag || "streeto-new-order",
+        renotify: true,
+        requireInteraction: true,
+        silent: false,
+        vibrate: [800, 200, 800, 200, 1200, 250, 1200],
+        timestamp: Date.now(),
+        data: message.data || { url: "/business-admin" },
+      });
     })
   );
 });

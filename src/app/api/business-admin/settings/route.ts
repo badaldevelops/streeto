@@ -35,6 +35,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        upiId: true,
         isOpen: true,
         createdAt: true,
         updatedAt: true,
@@ -98,10 +99,18 @@ export async function PATCH(request: Request) {
       typeof body.name === "string"
         ? body.name.trim()
         : "";
+    const upiId = typeof body.upiId === "string" ? body.upiId.trim() : "";
 
     if (!name) {
       return NextResponse.json(
         { error: "Business name is required." },
+        { status: 400 }
+      );
+    }
+
+    if (upiId && !/^[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}$/.test(upiId)) {
+      return NextResponse.json(
+        { error: "Enter a valid business UPI ID, such as business@bank." },
         { status: 400 }
       );
     }
@@ -112,10 +121,12 @@ export async function PATCH(request: Request) {
       },
       data: {
         name,
+        upiId: upiId || null,
       },
       select: {
         id: true,
         name: true,
+        upiId: true,
         isOpen: true,
         createdAt: true,
         updatedAt: true,

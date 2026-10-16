@@ -1,21 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CashfreePayButton from "../components/CashfreePayButton";
+import OrderRating from "../components/OrderRating";
+import { useCart } from "../components/CartProvider";
 
 type OrderItem = {
   id: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  sgstAmount: number;
+  cgstAmount: number;
   product: {
     name: string;
   };
 };
 
-type Payment = {
-  amount: number;
-  method: string;
-  status: string;
+type Outlet = {
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 type Order = {
@@ -26,13 +32,18 @@ type Order = {
   queueNumber: number | null;
   queuePosition: number | null;
   subtotal: number;
+  sgstAmount: number;
+  cgstAmount: number;
+  gstin: string | null;
   deliveryCharge: number;
   total: number;
+  payment: { status: string; method: string; gatewaySessionId: string | null } | null;
   deliveryAddress: string | null;
   customizationNote: string | null;
   createdAt: string;
+  outlet: Outlet | null;
   items: OrderItem[];
-  payment: Payment | null;
+  rating: { stars: number; updatedAt: string } | null;
 };
 
 type Customer = {
@@ -61,6 +72,7 @@ const selfReceiveStatuses = [
 
 function getStatusLabel(status: string) {
   const labels: Record<string, string> = {
+    PAYMENT_PENDING: "Payment Pending",
     PLACED: "Order Placed",
     ACCEPTED: "Order Accepted",
     PREPARING: "Preparing",
@@ -91,6 +103,9 @@ function getStatusMessage(status: string, orderType: string) {
   if (status === "READY") {
     if (orderType === "SELF_RECEIVE") {
       return "Your order is ready. Please collect it from the outlet.";
+    }
+    if (orderType === "DINE_IN") {
+      return "Your order is ready. Please enjoy it at the outlet.";
     }
 
     return "Your order is ready for delivery.";
@@ -124,6 +139,14 @@ function formatDate(date: string) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function getOutletDirectionsUrl(outlet: Outlet) {
+  if (outlet.latitude === null || outlet.longitude === null) {
+    return null;
+  }
+
+  return `https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`;
 }
 
 function OrderProgress({ order }: { order: Order }) {
@@ -173,12 +196,6 @@ function OrderProgress({ order }: { order: Order }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-orange-100">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-green-500" />
-          <span className="text-xs font-black text-gray-700">
-            LIVE
-          </span>
-        </div>
       </div>
 
       <div className="mt-7">
@@ -241,15 +258,31 @@ function OrderProgress({ order }: { order: Order }) {
 }
 
 export default function MyOrdersPage() {
+  const { clearCart } = useCart();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cashfreeMode, setCashfreeMode] = useState<"sandbox" | "production">("sandbox");
 
   async function loadOrders(showLoading = false) {
     try {
       if (showLoading) {
         setLoading(true);
+      }
+
+      // The server sends this success flag only after Cashfree payment has
+      // been verified. Clear the cart before fetching order history so a
+      // temporary history API error cannot leave a paid order in the cart.
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get("payment") === "success") {
+        clearCart();
+        currentUrl.searchParams.delete("payment");
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
+        );
       }
 
       const response = await fetch("/api/my-orders", {
@@ -263,9 +296,12 @@ export default function MyOrdersPage() {
         return;
       }
 
-      setOrders(data.orders || []);
+      const loadedOrders: Order[] = data.orders || [];
+      setOrders(loadedOrders);
       setCustomer(data.customer || null);
+      if (data.cashfreeMode === "sandbox" || data.cashfreeMode === "production") setCashfreeMode(data.cashfreeMode);
       setError("");
+
     } catch (error) {
       console.error(error);
 
@@ -322,11 +358,7 @@ export default function MyOrdersPage() {
               ← Back to Menu
             </a>
 
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-orange-500 sm:mt-6">
-              Your Orders
-            </p>
-
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-gray-950 sm:text-5xl">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-gray-950 sm:mt-6 sm:text-5xl">
               My Orders
             </h1>
 
@@ -335,6 +367,7 @@ export default function MyOrdersPage() {
                 {customer.name} · {customer.phone}
               </p>
             )}
+            <p className="mt-2 text-xs font-medium text-gray-500">Showing orders from the last 48 hours.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -409,13 +442,10 @@ export default function MyOrdersPage() {
               <div className="border-b border-orange-100 bg-gradient-to-r from-white to-orange-50/60 p-4 sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">
-                      Order Number
-                    </p>
-
-                    <h2 className="mt-1 text-xl font-black text-gray-950">
-                      {order.orderNumber}
-                    </h2>
+                    {order.type === "DELIVERY" && <>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">Order Number</p>
+                      <h2 className="mt-1 text-xl font-black text-gray-950">{order.orderNumber}</h2>
+                    </>}
 
                     <p className="mt-1 text-xs font-medium text-gray-500">
                       {formatDate(order.createdAt)}
@@ -424,24 +454,17 @@ export default function MyOrdersPage() {
 
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-orange-100 px-3 py-1.5 text-xs font-black text-orange-700">
-                      {order.type === "DELIVERY"
-                        ? "🚚 Delivery"
-                        : "🏪 Self Receive"}
+                      {order.type === "DELIVERY" ? "🚚 Delivery" : order.type === "DINE_IN" ? "🍽️ Dine In" : "🏪 Self Receive"}
                     </span>
 
-                    <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-black text-green-600">
-                      Auto-updating
-                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6">
-                {/* PROGRESS */}
-                <OrderProgress order={order} />
-
+              <div className="space-y-5 p-4 sm:p-6">
                 {/* SELF RECEIVE QUEUE */}
-                {order.type === "SELF_RECEIVE" &&
+                {(order.type === "SELF_RECEIVE" || order.type === "DINE_IN") &&
+                  order.payment?.status === "PAID" &&
                   order.queuePosition !== null &&
                   order.status !== "COMPLETED" &&
                   order.status !== "CANCELLED" && (
@@ -449,7 +472,7 @@ export default function MyOrdersPage() {
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-100">
-                            Self Receive Queue
+                            {order.type === "DINE_IN" ? "Dine In Queue" : "Self Receive Queue"}
                           </p>
 
                           <p className="mt-1 text-3xl font-black">
@@ -470,8 +493,30 @@ export default function MyOrdersPage() {
                     </div>
                   )}
 
+                {(order.type === "SELF_RECEIVE" || order.type === "DINE_IN") && (
+                  <div className="rounded-xl border border-orange-100 bg-orange-50/70 px-4 py-3">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-orange-600">Order Number</p>
+                    <p className="mt-1 font-black text-gray-950">{order.orderNumber}</p>
+                  </div>
+                )}
+
+                {/* LIVE STATUS */}
+                {order.payment?.status === "PAID" ? (
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 sm:p-5">
+                    <OrderProgress order={order} />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+                    <h3 className="font-black text-amber-900">{order.payment?.status === "FAILED" ? "Payment failed" : order.payment?.status === "REFUNDED" ? "Payment refunded" : "Payment pending"}</h3>
+                    <p className="mt-1 text-sm text-amber-900/80">{order.payment?.status === "FAILED" ? "Payment was not completed, so this order has not been placed." : order.payment?.status === "REFUNDED" ? "This payment was refunded. Contact support if you need help." : "Complete your payment to place this order. The outlet will receive it after payment is confirmed."}</p>
+                  </div>
+                )}
+                {(order.status === "COMPLETED" || (order.type === "DELIVERY" && order.status === "DELIVERED")) && order.payment?.status === "PAID" && (
+                  <OrderRating orderId={order.id} initialStars={order.rating?.stars ?? null} />
+                )}
+
                 {/* ITEMS */}
-                <div className="mt-6">
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-lg font-black text-gray-950">
                       Your Items
@@ -483,7 +528,7 @@ export default function MyOrdersPage() {
                     </span>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50">
                     {order.items.map((item, index) => (
                       <div
                         key={item.id}
@@ -518,7 +563,7 @@ export default function MyOrdersPage() {
                 </div>
 
                 {/* BILL + ORDER INFO */}
-                <div className="mt-6 grid gap-5 lg:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                   {/* BILL */}
                   <div className="rounded-[24px] border border-orange-100 bg-orange-50/60 p-5">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">
@@ -535,6 +580,20 @@ export default function MyOrdersPage() {
                           ₹{order.subtotal}
                         </span>
                       </div>
+
+                      {order.gstin && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-500">SGST</span>
+                            <span className="font-bold text-gray-900">₹{order.sgstAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-500">CGST</span>
+                            <span className="font-bold text-gray-900">₹{order.cgstAmount.toFixed(2)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500">GSTIN: {order.gstin}</p>
+                        </>
+                      )}
 
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-500">
@@ -556,20 +615,21 @@ export default function MyOrdersPage() {
                             ₹{order.total}
                           </span>
                         </div>
+                        <p className={`mt-2 text-right text-sm font-bold ${order.payment?.status === "PAID" ? "text-green-700" : "text-amber-700"}`}>
+                          {order.payment?.method === "ONLINE" ? "Cashfree payment" : "Previous UPI payment"}: {order.payment?.status ?? "Not recorded"}
+                        </p>
+                        {order.payment?.method === "ONLINE" && order.payment.status === "PENDING" && order.payment.gatewaySessionId && (
+                          <div className="mt-3">
+                            <CashfreePayButton paymentSessionId={order.payment.gatewaySessionId} mode={cashfreeMode} compact />
+                            <p className="mt-2 text-right text-xs text-gray-500">Payment is confirmed automatically by Cashfree after verification.</p>
+                          </div>
+                        )}
+                        {order.payment?.method === "UPI" && order.payment.status === "PENDING" && (
+                          <p className="mt-2 text-right text-xs text-gray-500">This is a previous UPI order; it cannot be paid through the new Cashfree checkout.</p>
+                        )}
                       </div>
                     </div>
 
-                    {order.payment && (
-                      <div className="mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-2.5">
-                        <span className="text-xs font-bold text-gray-500">
-                          Payment
-                        </span>
-
-                        <span className="rounded-full bg-green-50 px-2.5 py-1 text-[10px] font-black uppercase text-green-600">
-                          {order.payment.status}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* ORDER DETAILS */}
@@ -585,9 +645,7 @@ export default function MyOrdersPage() {
                         </p>
 
                         <p className="mt-1 font-extrabold text-gray-950">
-                          {order.type === "DELIVERY"
-                            ? "🚚 Delivery"
-                            : "🏪 Self Receive"}
+                          {order.type === "DELIVERY" ? "🚚 Delivery" : order.type === "DINE_IN" ? "🍽️ Dine In" : "🏪 Self Receive"}
                         </p>
                       </div>
 
@@ -614,15 +672,26 @@ export default function MyOrdersPage() {
                         </div>
                       )}
 
-                      {order.type === "SELF_RECEIVE" && (
+                      {(order.type === "SELF_RECEIVE" || order.type === "DINE_IN") && (
                         <div>
                           <p className="text-xs font-bold text-gray-400">
                             Collection
                           </p>
 
                           <p className="mt-1 text-sm font-extrabold text-gray-700">
-                            📍 Collect from the selected outlet
+                            {order.type === "DINE_IN" ? "🍽️ Dine in at " : "📍 Collect from "}{order.outlet?.name || "the selected outlet"}
                           </p>
+
+                          {order.outlet && getOutletDirectionsUrl(order.outlet) && (
+                            <a
+                              href={getOutletDirectionsUrl(order.outlet)!}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-5 py-3.5 text-sm font-extrabold text-white shadow-md shadow-orange-200 transition hover:from-orange-600 hover:to-red-600"
+                            >
+                              🗺️ Open Directions in Google Maps
+                            </a>
+                          )}
                         </div>
                       )}
                     </div>

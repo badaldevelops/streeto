@@ -90,6 +90,11 @@ export async function POST(request: Request) {
       where: {
         id: orderId,
       },
+      select: {
+        id: true,
+        type: true,
+        payment: { select: { method: true, status: true } },
+      },
     });
 
     if (!order) {
@@ -106,6 +111,13 @@ export async function POST(request: Request) {
             "Only delivery orders can be assigned to delivery staff.",
         },
         { status: 400 }
+      );
+    }
+
+    if (order.payment?.method === "ONLINE" && order.payment.status !== "PAID") {
+      return NextResponse.json(
+        { error: "Cashfree must confirm payment before delivery assignment." },
+        { status: 409 }
       );
     }
 

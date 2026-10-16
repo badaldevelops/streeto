@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/session";
+import { getCurrentUser } from "@/lib/auth";
+import { getCashfreeMode } from "@/lib/cashfree";
 
 export async function GET(request: Request) {
   try {
@@ -10,47 +11,7 @@ export async function GET(request: Request) {
       .filter(Boolean)
       .slice(0, 25);
 
-    const cookieHeader = request.headers.get("cookie");
-
-    const sessionToken = cookieHeader
-      ?.split(";")
-      .map((cookie) => cookie.trim())
-      .find((cookie) => cookie.startsWith("session="))
-      ?.split("=")[1];
-
-    if (!sessionToken) {
-      return NextResponse.json(
-        {
-          error: "Please login first.",
-        },
-        { status: 401 }
-      );
-    }
-
-    const customerId = await verifySession(sessionToken);
-
-    if (!customerId) {
-      return NextResponse.json(
-        {
-          error: "Your session has expired. Please login again.",
-        },
-        { status: 401 }
-      );
-    }
-
-    const customer = await prisma.user.findUnique({
-      where: {
-        id: customerId,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-      },
-    });
-
+    const customer = await getCurrentUser();
     if (!customer || customer.role !== "CUSTOMER") {
       return NextResponse.json(
         {
@@ -64,7 +25,7 @@ export async function GET(request: Request) {
       customerId: customer.id,
       ...(requestedOrderIds
         ? { id: { in: requestedOrderIds } }
-        : {}),
+        : { createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } }),
     };
 
     if (requestedOrderIds) {
@@ -90,35 +51,73 @@ export async function GET(request: Request) {
       orderBy: {
         createdAt: "desc",
       },
-      include: {
-        outlet: true,
-        items: {
-          include: {
-            product: true,
+      select: {
+        id: true,
+        outletId: true,
+        orderNumber: true,
+        type: true,
+        status: true,
+        queueNumber: true,
+        subtotal: true,
+        sgstAmount: true,
+        cgstAmount: true,
+        gstin: true,
+        deliveryCharge: true,
+        total: true,
+        deliveryAddress: true,
+        customizationNote: true,
+        createdAt: true,
+        outlet: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            businessType: true,
           },
         },
-        payment: true,
-        delivery: true,
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            unitPrice: true,
+            totalPrice: true,
+            sgstAmount: true,
+            cgstAmount: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+        payment: { select: { status: true, method: true, gatewaySessionId: true } },
+        rating: { select: { stars: true, updatedAt: true } },
       },
     });
     const ordersWithQueue = await Promise.all(
   orders.map(async (order) => {
+    const { outletId, ...customerSafeOrder } = order;
     if (
-      order.type !== "SELF_RECEIVE" ||
+      (order.type !== "SELF_RECEIVE" && order.type !== "DINE_IN") ||
       order.queueNumber === null ||
       order.status === "COMPLETED" ||
       order.status === "CANCELLED"
     ) {
       return {
-        ...order,
+        ...customerSafeOrder,
         queuePosition: null,
       };
     }
 
     const ordersAhead = await prisma.order.count({
       where: {
-        outletId: order.outletId,
-        type: "SELF_RECEIVE",
+        outletId,
+        type: { in: ["SELF_RECEIVE", "DINE_IN"] },
         queueNumber: {
           lt: order.queueNumber,
         },
@@ -129,7 +128,7 @@ export async function GET(request: Request) {
     });
 
     return {
-      ...order,
+      ...customerSafeOrder,
       queuePosition: ordersAhead + 1,
     };
   })
@@ -138,6 +137,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
   success: true,
   customer,
+      cashfreeMode: getCashfreeMode(),
   orders: ordersWithQueue,
 });
 
