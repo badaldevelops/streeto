@@ -55,3 +55,20 @@ next-env.d.ts
 .cloudflare/
 /.vinext-apps/
 /.qtoo-app-build/
+
+# Local operational data, build previews, and task snapshots
+/STREETO_CONTEXT_CAPSULE.md
+/add-foodies.sql
+/check-admin.sql
+/create-admin.sql
+/create-superadmin.sql
+/d1-schema-clean.sql
+/d1-schema.sql
+/fix-local-admin.sql
+/get-foodies.js
+/get-shivam.js
+/output/
+/package-lock.backup.json
+/package-lock.old.json
+/ts-json-test.ts
+/tsconfig-resolved.json
