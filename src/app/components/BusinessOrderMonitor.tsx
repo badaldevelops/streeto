@@ -22,6 +22,7 @@ export default function BusinessOrderMonitor() {
   const router = useRouter();
   const [pendingOrder, setPendingOrder] = useState<IncomingOrder | null>(null);
   const seenOrderIds = useRef(new Set<string>());
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
     let stopped = false;
@@ -43,10 +44,23 @@ export default function BusinessOrderMonitor() {
         if (!response.ok) return;
         const data = await response.json();
         if (stopped) return;
-        const next = (data.orders || []).find((order: IncomingOrder & { status: string }) =>
+        const pendingOrders = (data.orders || []).filter((order: IncomingOrder & { status: string }) =>
           ["ACCEPTED", "PREPARING", "READY"].includes(order.status) &&
           !seenOrderIds.current.has(order.id)
         );
+        // The first successful fetch is a baseline: orders that were already
+        // accepted before this business session must not replay as new alerts.
+        if (!hasInitialized.current) {
+          hasInitialized.current = true;
+          for (const order of pendingOrders) seenOrderIds.current.add(order.id);
+          try {
+            window.localStorage.setItem(seenOrdersKey, JSON.stringify(Array.from(seenOrderIds.current).slice(-200)));
+          } catch {
+            // The in-memory baseline still prevents duplicate alerts in this session.
+          }
+          return;
+        }
+        const next = pendingOrders[0];
         setPendingOrder((current) => {
           return current || next || null;
         });
