@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 
-import AddToCartButton from "@/app/components/AddToCartButton";
+import CustomerMenuSections from "@/app/components/CustomerMenuSections";
 import CartButton from "@/app/components/CartButton";
 import CartPanel from "@/app/components/CartPanel";
 import CartCheckoutBar from "@/app/components/CartCheckoutBar";
@@ -71,6 +71,8 @@ if (user?.role === "SUPER_ADMIN") {
             },
             select: {
               id: true,
+              category: true,
+              addOns: true,
               price: true,
               isVeg: true,
               product: {
@@ -303,94 +305,12 @@ if (user?.role === "SUPER_ADMIN") {
                   <>
                     <div className="mb-4 flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">
-                          Fresh from the kitchen
-                        </p>
-
-                        <h4 className="mt-1 text-xl font-black text-gray-950">
-                          Popular Menu
-                        </h4>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">Fresh from the kitchen</p>
+                        <h4 className="mt-1 text-xl font-black text-gray-950">Menu</h4>
                       </div>
-
-                      <span className="rounded-full border border-orange-100 bg-white px-3 py-1.5 text-xs font-bold text-gray-500 shadow-sm">
-                        {outletIndex === 0
-                          ? "Featured"
-                          : "Available Now"}
-                      </span>
+                      <span className="rounded-full border border-orange-100 bg-white px-3 py-1.5 text-xs font-bold text-gray-500 shadow-sm">{outlet.outletProducts.length} items</span>
                     </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
-                      {outlet.outletProducts.map(
-                        (item) => (
-                          <article
-                            key={item.id}
-                            className="group flex overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(234,88,12,0.12)] sm:block sm:rounded-[28px]"
-                          >
-                            {/* Product Image */}
-                            <div className="relative h-28 w-28 shrink-0 overflow-hidden bg-gradient-to-br from-orange-50 via-white to-red-50 sm:h-56 sm:w-auto">
-                              {item.product.imageUrl ? (
-                                <img
-                                  src={item.product.imageUrl}
-                                  alt={item.product.name}
-                                  className="h-full w-full object-contain p-2 transition duration-500 group-hover:scale-105 sm:p-4"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-4xl transition duration-500 group-hover:scale-110 sm:text-7xl">
-                                  🍽️
-                                </div>
-                              )}
-
-                              <div className="absolute left-1.5 top-1.5 rounded-full bg-white/90 px-2 py-1 text-[8px] font-extrabold uppercase tracking-wide text-orange-600 shadow-sm backdrop-blur sm:left-4 sm:top-4 sm:px-3 sm:py-1.5 sm:text-[10px]">
-                                Available
-                              </div>
-
-                              <div className="absolute bottom-1.5 right-1.5 rounded-full bg-white/95 px-2 py-1 text-xs font-black text-gray-900 shadow-lg sm:bottom-4 sm:right-4 sm:px-3 sm:py-1.5 sm:text-sm">
-                                ₹{item.price}
-                              </div>
-                            </div>
-
-                            {/* Product Info */}
-                            <div className="min-w-0 flex-1 p-3 sm:p-5">
-                              <div className="sm:min-h-[78px]">
-                                <h5 className="line-clamp-2 text-base font-black leading-tight text-gray-950 sm:text-xl">
-                                  {item.product.name}
-                                </h5>
-                                <span className={`mt-1 inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold ${item.isVeg ? "border-green-600 text-green-700" : "border-red-600 text-red-700"}`} aria-label={item.isVeg ? "Vegetarian" : "Non-vegetarian"}>
-                                  <span className={`mr-1 inline-block h-2 w-2 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
-                                  {item.isVeg ? "Veg" : "Non-veg"}
-                                </span>
-
-                                <p className="mt-1 line-clamp-2 text-xs font-medium leading-4 text-gray-500 sm:mt-2 sm:text-sm sm:leading-5">
-                                  {item.product.description ||
-                                    "Fresh and delicious."}
-                                </p>
-                              </div>
-
-                              <div className="mt-2 hidden items-center gap-2 text-xs font-semibold text-gray-400 sm:mt-4 sm:flex">
-                                <span className="rounded-full bg-gray-50 px-3 py-1.5">
-                                  📍 {outlet.name}
-                                </span>
-                              </div>
-
-                              <div className="mt-2 sm:mt-4">
-                                <AddToCartButton
-                                  productId={item.id}
-                                  productName={
-                                    item.product.name
-                                  }
-                                  price={item.price}
-                                  companyId={business.id}
-                                  companyName={business.name}
-                                  outletId={outlet.id}
-                                  outletName={outlet.name}
-                                  disabled={!business.isOpen}
-                                />
-                              </div>
-                            </div>
-                          </article>
-                        )
-                      )}
-                    </div>
+                    <CustomerMenuSections products={outlet.outletProducts} outletId={outlet.id} outletName={outlet.name} companyId={business.id} companyName={business.name} storeOpen={business.isOpen} />
                   </>
                 )}
               </section>

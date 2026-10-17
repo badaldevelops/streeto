@@ -1,8 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { safeHttpsUrl } from "@/lib/validation";
+import { parseProductAddOns } from "@/lib/product-addons";
 
 function parseGstin(value: unknown): string | null | "invalid" {
   if (value === undefined || value === null || value === "") return null;
@@ -120,6 +122,8 @@ export async function POST(request: Request) {
       typeof body.name === "string"
         ? body.name.trim()
         : "";
+    const category = typeof body.category === "string" ? body.category.trim() : "Other";
+    const addOns = parseProductAddOns(body.addOns);
 
     const description =
       typeof body.description === "string"
@@ -159,6 +163,13 @@ export async function POST(request: Request) {
         { error: "Product name is required." },
         { status: 400 }
       );
+    }
+
+    if (!category || category.length > 60) {
+      return NextResponse.json({ error: "Enter a menu section name up to 60 characters." }, { status: 400 });
+    }
+    if (!addOns) {
+      return NextResponse.json({ error: "Check each add-on name and price. You can add up to 20 per product." }, { status: 400 });
     }
 
     if (!outletId) {
@@ -238,6 +249,8 @@ export async function POST(request: Request) {
         outletProducts: {
           create: {
             outletId: outlet.id,
+            category,
+            addOns,
             price,
             sgstRate: gstin ? sgstRate! : 0,
             cgstRate: gstin ? cgstRate! : 0,
@@ -435,7 +448,9 @@ export async function PATCH(request: Request) {
       body.isVeg !== undefined ||
       body.gstin !== undefined ||
       body.sgstRate !== undefined ||
-      body.cgstRate !== undefined
+      body.cgstRate !== undefined ||
+      body.category !== undefined ||
+      body.addOns !== undefined
     ) {
       const outletId =
         body.outletId !== undefined
@@ -516,12 +531,28 @@ export async function PATCH(request: Request) {
         });
 
       const outletProductData: {
+        category?: string;
+        addOns?: Prisma.InputJsonValue;
         price?: number;
         isAvailable?: boolean;
         isVeg?: boolean;
         sgstRate?: number;
         cgstRate?: number;
       } = {};
+
+      if (body.category !== undefined) {
+        if (typeof body.category !== "string" || !body.category.trim() || body.category.trim().length > 60) {
+          return NextResponse.json({ error: "Enter a menu section name up to 60 characters." }, { status: 400 });
+        }
+        outletProductData.category = body.category.trim();
+      }
+      if (body.addOns !== undefined) {
+        const addOns = parseProductAddOns(body.addOns);
+        if (!addOns) {
+          return NextResponse.json({ error: "Check each add-on name and price. You can add up to 20 per product." }, { status: 400 });
+        }
+        outletProductData.addOns = addOns as Prisma.InputJsonValue;
+      }
 
       if (body.price !== undefined) {
         const price = Number(body.price);

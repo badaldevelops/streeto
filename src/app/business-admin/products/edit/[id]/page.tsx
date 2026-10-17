@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ProductAddOnsEditor, { type ProductAddOnDraft } from "@/app/components/ProductAddOnsEditor";
+import { readProductAddOns } from "@/lib/product-addons";
 
 type Outlet = {
   id: string;
@@ -12,6 +14,8 @@ type Outlet = {
 
 type ProductOutlet = {
   outletId: string;
+  category: string;
+  addOns: unknown;
   price: number;
   sgstRate: number;
   cgstRate: number;
@@ -47,6 +51,8 @@ export default function EditProductPage() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("Other");
+  const [addOns, setAddOns] = useState<ProductAddOnDraft[]>([]);
 
   const [outletId, setOutletId] = useState("");
 const [price, setPrice] = useState("");
@@ -174,6 +180,8 @@ const [cgstRate, setCgstRate] = useState("");
           setSgstRate(String(firstOutlet.sgstRate ?? 0));
           setCgstRate(String(firstOutlet.cgstRate ?? 0));
           setGstin(outletsData.outlets?.find((outlet: Outlet) => outlet.id === firstOutlet.outletId)?.gstin ?? "");
+          setCategory(firstOutlet.category || "Other");
+          setAddOns(readProductAddOns(firstOutlet.addOns).map((addOn) => ({ ...addOn, price: String(addOn.price) })));
         }
       } catch (error) {
         console.error(
@@ -237,6 +245,8 @@ const [cgstRate, setCgstRate] = useState("");
             name: name.trim(),
             description:
               description.trim(),
+            category,
+            addOns: addOns.map((addOn) => ({ id: addOn.id, name: addOn.name, price: Number(addOn.price) })),
             isActive,
             outletId,
             price: Number(price),
@@ -505,6 +515,8 @@ const [cgstRate, setCgstRate] = useState("");
                 setGstin(selectedOutlet?.gstin ?? "");
                 setIsVeg(selectedOutlet?.foodType === "NON_VEG" ? false : true);
                 const selectedPrice = product?.outletProducts.find((entry) => entry.outletId === selectedId);
+                setCategory(selectedPrice?.category || "Other");
+                setAddOns(readProductAddOns(selectedPrice?.addOns).map((addOn) => ({ ...addOn, price: String(addOn.price) })));
                 if (selectedPrice) setIsVeg(selectedPrice.isVeg);
                 setSgstRate(String(selectedPrice?.sgstRate ?? 0));
                 setCgstRate(String(selectedPrice?.cgstRate ?? 0));
@@ -557,6 +569,12 @@ const [cgstRate, setCgstRate] = useState("");
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
             <label style={{ fontWeight: 700, color: "#111827" }}>SGST rate (%)<input type="number" min="0" max="100" step="0.01" value={sgstRate} onChange={(event) => setSgstRate(event.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px 14px" }} /></label>
             <label style={{ fontWeight: 700, color: "#111827" }}>CGST rate (%)<input type="number" min="0" max="100" step="0.01" value={cgstRate} onChange={(event) => setCgstRate(event.target.value)} style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: "8px", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px 14px" }} /></label>
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="menuCategory" style={{ display: "block", fontWeight: 700, marginBottom: "8px", color: "#111827" }}>Menu section</label>
+            <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", padding: "12px 14px", border: "1px solid #d1d5db", borderRadius: "10px", fontSize: "15px", boxSizing: "border-box" }} />
+            <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
           </div>
 
           <div

@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { readProductAddOns } from "@/lib/product-addons";
 
 type OrderItem = {
   id: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  addOns: unknown;
   product: {
     name: string;
   };
@@ -528,6 +530,7 @@ export default function AdminOrdersPage() {
                       <span className="font-semibold">
                         ₹{item.totalPrice}
                       </span>
+                      {readProductAddOns(item.addOns).length > 0 && <span className="basis-full text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</span>}
                     </div>
                   ))}
 

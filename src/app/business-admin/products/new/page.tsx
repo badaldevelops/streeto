@@ -5,12 +5,15 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import ProductAddOnsEditor, { type ProductAddOnDraft } from "@/app/components/ProductAddOnsEditor";
 
 export default function NewProductPage() {
   const router = useRouter();
 
 const [name, setName] = useState("");
 const [description, setDescription] = useState("");
+const [category, setCategory] = useState("Other");
+const [addOns, setAddOns] = useState<ProductAddOnDraft[]>([]);
 
 const [outlets, setOutlets] = useState<
   { id: string; name: string; gstin?: string | null; foodType: "VEG" | "NON_VEG" | "BOTH" }[]
@@ -102,6 +105,8 @@ if (!price || Number(price) < 0) {
        body: JSON.stringify({
   name,
   description,
+  category,
+  addOns: addOns.map((addOn) => ({ id: addOn.id, name: addOn.name, price: Number(addOn.price) })),
   outletId,
   price: Number(price),
   gstin,
@@ -281,6 +286,9 @@ if (!price || Number(price) < 0) {
               resize: "vertical",
             }}
           />
+          <label htmlFor="menuCategory" style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginTop: "20px", marginBottom: "8px" }}>Menu section</label>
+          <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", outline: "none", fontSize: "15px" }} />
+          <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
 <div
   style={{
     marginTop: "20px",

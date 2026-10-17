@@ -100,7 +100,7 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
               <div className="space-y-3">
                 {items.map((item) => (
                   <div
-                    key={item.productId}
+                    key={item.lineId}
                     className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -110,12 +110,13 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
                         </h3>
 
                         <p className="mt-1 text-sm font-medium text-gray-500">
-                          ₹{item.price} each
+                          ₹{(item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)).toFixed(2)} each
                         </p>
+                        {item.addOns.length > 0 && <p className="mt-1 text-xs text-emerald-700">{item.addOns.map((addOn) => addOn.name).join(", ")}</p>}
                       </div>
 
                       <p className="whitespace-nowrap font-black text-gray-950">
-                        ₹{item.price * item.quantity}
+                        ₹{((item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity).toFixed(2)}
                       </p>
                     </div>
 
@@ -128,7 +129,7 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
                         <button
                           type="button"
                           onClick={() =>
-                            decreaseItem(item.productId)
+                            decreaseItem(item.lineId)
                           }
                           className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-lg font-black text-orange-600 shadow-sm transition hover:bg-orange-100"
                         >
@@ -150,6 +151,8 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
                               companyName: item.companyName,
                               outletId: item.outletId,
                               outletName: item.outletName,
+                              addOns: item.addOns,
+                              lineId: item.lineId,
                             })
                           }
                           className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-lg font-black text-white shadow-sm transition hover:scale-105"

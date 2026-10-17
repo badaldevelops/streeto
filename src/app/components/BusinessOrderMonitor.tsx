@@ -15,7 +15,7 @@ type IncomingOrder = {
   queueNumber: number | null;
   customizationNote: string | null;
   outlet: { name: string };
-  items: { id: string; quantity: number; totalPrice: number; product: { name: string } }[];
+  items: { id: string; quantity: number; totalPrice: number; addOns: unknown; product: { name: string } }[];
 };
 
 export default function BusinessOrderMonitor() {

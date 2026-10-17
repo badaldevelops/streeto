@@ -83,6 +83,7 @@ export async function GET(request: Request) {
             quantity: true,
             unitPrice: true,
             totalPrice: true,
+            addOns: true,
             sgstAmount: true,
             cgstAmount: true,
             product: {

@@ -9,91 +9,91 @@ datasource db {
 }
 
 model Company {
-  id        String    @id @default(cuid())
-  name      String
-  upiId     String?
-  isActive  Boolean   @default(true)
-  isOpen    Boolean   @default(true)
-  verificationStatus BusinessVerificationStatus @default(APPROVED)
-  foodLicenseNumber String?
-  foodLicenseExpiry DateTime?
-  ownerAadhaarCiphertext String?
-  ownerAadhaarLast4 String?
-  verificationSubmittedAt DateTime?
-  verificationReviewedAt DateTime?
+  id                       String                     @id @default(cuid())
+  name                     String
+  upiId                    String?
+  isActive                 Boolean                    @default(true)
+  isOpen                   Boolean                    @default(true)
+  verificationStatus       BusinessVerificationStatus @default(APPROVED)
+  foodLicenseNumber        String?
+  foodLicenseExpiry        DateTime?
+  ownerAadhaarCiphertext   String?
+  ownerAadhaarLast4        String?
+  verificationSubmittedAt  DateTime?
+  verificationReviewedAt   DateTime?
   verificationReviewedById String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  outlets   Outlet[]
-  products  Product[]
-  users     User[]
-  pushSubscriptions BusinessPushSubscription[]
-  commissionCollections CommissionCollection[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  outlets                  Outlet[]
+  products                 Product[]
+  users                    User[]
+  pushSubscriptions        BusinessPushSubscription[]
+  commissionCollections    CommissionCollection[]
 }
 
 model Outlet {
-  id                String          @id @default(cuid())
-  name              String
-  city              String?
-  locality          String?
-  address           String?
-  phone             String?
-  latitude          Float?
-  longitude         Float?
-  deliveryRadiusKm  Float           @default(5)
-  businessType      String          @default("FIXED_SHOP")
-  foodType          String          @default("BOTH")
-  locationUpdatedAt DateTime?
-  deliveryCharge    Float           @default(0)
-  deliveryEnabled   Boolean         @default(false)
-  gstin             String?
-  cashfreeVendorId  String?         @unique
+  id                   String                @id @default(cuid())
+  name                 String
+  city                 String?
+  locality             String?
+  address              String?
+  phone                String?
+  latitude             Float?
+  longitude            Float?
+  deliveryRadiusKm     Float                 @default(5)
+  businessType         String                @default("FIXED_SHOP")
+  foodType             String                @default("BOTH")
+  locationUpdatedAt    DateTime?
+  deliveryCharge       Float                 @default(0)
+  deliveryEnabled      Boolean               @default(false)
+  gstin                String?
+  cashfreeVendorId     String?               @unique
   cashfreeVendorStatus String?
-  cashfreeVendorLast4 String?
-  cashfreeVendorIfsc String?
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  companyId         String
-  orders            Order[]
-  ratings           OutletRating[]
-  payoutRequests    OutletPayoutRequest[]
-  company           Company         @relation(fields: [companyId], references: [id])
-  outletProducts    OutletProduct[]
-  users             User[]
+  cashfreeVendorLast4  String?
+  cashfreeVendorIfsc   String?
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  companyId            String
+  orders               Order[]
+  ratings              OutletRating[]
+  payoutRequests       OutletPayoutRequest[]
+  company              Company               @relation(fields: [companyId], references: [id])
+  outletProducts       OutletProduct[]
+  users                User[]
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  phone        String?
-  passwordHash String?
-  role         UserRole
-  isActive     Boolean    @default(true)
-  sessionVersion Int      @default(0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  companyId    String?
-  outletId     String?
-  addresses    Address[]
-  deliveries   Delivery[] @relation("DeliveryStaff")
-  orders       Order[]    @relation("CustomerOrders")
-  outletRatings OutletRating[]
-  company      Company?   @relation(fields: [companyId], references: [id])
-  outlet       Outlet?    @relation(fields: [outletId], references: [id])
-  pushSubscriptions BusinessPushSubscription[]
+  id                  String                     @id @default(cuid())
+  name                String
+  email               String                     @unique
+  phone               String?
+  passwordHash        String?
+  role                UserRole
+  isActive            Boolean                    @default(true)
+  sessionVersion      Int                        @default(0)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  companyId           String?
+  outletId            String?
+  addresses           Address[]
+  deliveries          Delivery[]                 @relation("DeliveryStaff")
+  orders              Order[]                    @relation("CustomerOrders")
+  outletRatings       OutletRating[]
+  company             Company?                   @relation(fields: [companyId], references: [id])
+  outlet              Outlet?                    @relation(fields: [outletId], references: [id])
+  pushSubscriptions   BusinessPushSubscription[]
   passwordResetTokens PasswordResetToken[]
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([expiresAt])
@@ -136,6 +136,8 @@ model Product {
 
 model OutletProduct {
   id          String   @id @default(cuid())
+  category    String   @default("Other")
+  addOns      Json     @default("[]")
   price       Float
   sgstRate    Float    @default(0)
   cgstRate    Float    @default(0)
@@ -152,38 +154,38 @@ model OutletProduct {
 }
 
 model Order {
-  id                String      @id @default(cuid())
-  orderNumber       String      @unique
-  type              OrderType
-  status            OrderStatus @default(PLACED)
-  subtotal          Float
-  sgstAmount        Float       @default(0)
-  cgstAmount        Float       @default(0)
-  gstin             String?
-  deliveryCharge    Float       @default(0)
-  total             Float
-  platformCommission Float      @default(0)
-  platformCommissionGst Float   @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  customerId        String?
-  outletId          String
-  deliveryAddress   String?
-  customizationNote String?
-  customerPhone     String?
-  customerName      String?
-  customerLatitude  Float?
-  customerLongitude Float?
-  businessType      String      @default("FIXED_SHOP")
-  locationUpdatedAt DateTime?
-  queueNumber       Int?
-  queuePosition     Int?
-  delivery          Delivery?
-  customer          User?       @relation("CustomerOrders", fields: [customerId], references: [id])
-  outlet            Outlet      @relation(fields: [outletId], references: [id])
-  items             OrderItem[]
-  payment           Payment?
-  rating            OutletRating?
+  id                    String        @id @default(cuid())
+  orderNumber           String        @unique
+  type                  OrderType
+  status                OrderStatus   @default(PLACED)
+  subtotal              Float
+  sgstAmount            Float         @default(0)
+  cgstAmount            Float         @default(0)
+  gstin                 String?
+  deliveryCharge        Float         @default(0)
+  total                 Float
+  platformCommission    Float         @default(0)
+  platformCommissionGst Float         @default(0)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  customerId            String?
+  outletId              String
+  deliveryAddress       String?
+  customizationNote     String?
+  customerPhone         String?
+  customerName          String?
+  customerLatitude      Float?
+  customerLongitude     Float?
+  businessType          String        @default("FIXED_SHOP")
+  locationUpdatedAt     DateTime?
+  queueNumber           Int?
+  queuePosition         Int?
+  delivery              Delivery?
+  customer              User?         @relation("CustomerOrders", fields: [customerId], references: [id])
+  outlet                Outlet        @relation(fields: [outletId], references: [id])
+  items                 OrderItem[]
+  payment               Payment?
+  rating                OutletRating?
 }
 
 model OutletRating {
@@ -204,6 +206,7 @@ model OutletRating {
 
 model OrderItem {
   id         String  @id @default(cuid())
+  addOns     Json    @default("[]")
   quantity   Int
   unitPrice  Float
   totalPrice Float
@@ -216,40 +219,40 @@ model OrderItem {
 }
 
 model Payment {
-  id            String        @id @default(cuid())
-  amount        Float
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?
-  upiReference  String?
-  upiPayeeId    String?
-  upiPayeeName  String?
-  gatewayOrderId String?       @unique
-  gatewaySessionId String?
-  outletPayoutStatus String       @default("PENDING")
+  id                    String               @id @default(cuid())
+  amount                Float
+  method                PaymentMethod
+  status                PaymentStatus        @default(PENDING)
+  transactionId         String?
+  upiReference          String?
+  upiPayeeId            String?
+  upiPayeeName          String?
+  gatewayOrderId        String?              @unique
+  gatewaySessionId      String?
+  outletPayoutStatus    String               @default("PENDING")
   outletPayoutReference String?
-  outletPayoutAt DateTime?
+  outletPayoutAt        DateTime?
   outletPayoutRequestId String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  orderId       String        @unique
-  order         Order         @relation(fields: [orderId], references: [id])
-  outletPayoutRequest OutletPayoutRequest? @relation(fields: [outletPayoutRequestId], references: [id], onDelete: SetNull)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  orderId               String               @unique
+  order                 Order                @relation(fields: [orderId], references: [id])
+  outletPayoutRequest   OutletPayoutRequest? @relation(fields: [outletPayoutRequestId], references: [id], onDelete: SetNull)
 
   @@index([outletPayoutRequestId])
 }
 
 model OutletPayoutRequest {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   outletId          String
   amount            Float
-  status            String   @default("PENDING")
+  status            String    @default("PENDING")
   utr               String?
-  requestedAt       DateTime @default(now())
+  requestedAt       DateTime  @default(now())
   paidAt            DateTime?
   requestedByUserId String
   paidByUserId      String?
-  outlet            Outlet   @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  outlet            Outlet    @relation(fields: [outletId], references: [id], onDelete: Restrict)
   payments          Payment[]
 
   @@index([outletId, status, requestedAt])

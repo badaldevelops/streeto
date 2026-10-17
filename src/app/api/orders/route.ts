@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getCashfreeConfig, getCashfreeMode, startCashfreeOrder } from "@/lib/cashfree";
+import { readProductAddOns, type ProductAddOn } from "@/lib/product-addons";
 
 export async function POST(request: Request) {
   try {
@@ -57,7 +58,11 @@ export async function POST(request: Request) {
             (item as { quantity?: unknown }).quantity
           ) ||
           (item as { quantity: number }).quantity < 1 ||
-          (item as { quantity: number }).quantity > 99
+          (item as { quantity: number }).quantity > 99 ||
+          ((item as { addOnIds?: unknown }).addOnIds !== undefined &&
+            (!Array.isArray((item as { addOnIds?: unknown }).addOnIds) ||
+              ((item as { addOnIds: unknown[] }).addOnIds.length > 20) ||
+              (item as { addOnIds: unknown[] }).addOnIds.some((id) => typeof id !== "string" || id.length > 100)))
       )
     ) {
       return NextResponse.json(
@@ -197,12 +202,12 @@ if (
      * Never trust product price, outlet or company
      * information coming from the browser.
      */
-    const outletProductIds = items.map(
+    const outletProductIds = Array.from(new Set(items.map(
       (item: {
         outletProductId: string;
         quantity: number;
       }) => item.outletProductId
-    );
+    )));
 
     const outletProducts =
       await prisma.outletProduct.findMany({
@@ -312,8 +317,9 @@ if (
     let subtotal = 0;
     let sgstAmount = 0;
     let cgstAmount = 0;
+    const selectedAddOnsByLine = new Map<number, ProductAddOn[]>();
 
-    for (const item of items) {
+    for (const [itemIndex, item] of items.entries()) {
       if (
         !Number.isInteger(item.quantity) ||
         item.quantity <= 0
@@ -344,10 +350,22 @@ if (
         );
       }
 
-      subtotal +=
-        product.price * item.quantity;
+      const configuredAddOns = readProductAddOns(product.addOns);
+      const requestedIds: string[] = Array.isArray(item.addOnIds) ? item.addOnIds : [];
+      if (new Set(requestedIds).size !== requestedIds.length) {
+        return NextResponse.json({ error: "An add-on was selected more than once." }, { status: 400 });
+      }
+      const selectedAddOns = requestedIds.map((id) => configuredAddOns.find((addOn) => addOn.id === id));
+      if (selectedAddOns.some((addOn) => !addOn)) {
+        return NextResponse.json({ error: "One of the selected add-ons is no longer available. Please update your cart." }, { status: 400 });
+      }
+      const validAddOns = selectedAddOns as ProductAddOn[];
+      selectedAddOnsByLine.set(itemIndex, validAddOns);
+
+      const unitPrice = product.price + validAddOns.reduce((total, addOn) => total + addOn.price, 0);
+      const lineSubtotal = unitPrice * item.quantity;
+      subtotal += lineSubtotal;
       if (outlet.gstin) {
-        const lineSubtotal = product.price * item.quantity;
         sgstAmount += Math.round(lineSubtotal * product.sgstRate) / 100;
         cgstAmount += Math.round(lineSubtotal * product.cgstRate) / 100;
       }
@@ -481,7 +499,7 @@ customerLongitude:
               (item: {
                 outletProductId: string;
                 quantity: number;
-              }) => {
+              }, itemIndex: number) => {
                 const product =
                   outletProducts.find(
                     (outletProduct) =>
@@ -489,7 +507,9 @@ customerLongitude:
                       item.outletProductId
                   );
 
-                const itemSubtotal = product!.price * item.quantity;
+                const selectedAddOns = selectedAddOnsByLine.get(itemIndex) ?? [];
+                const unitPrice = product!.price + selectedAddOns.reduce((total, addOn) => total + addOn.price, 0);
+                const itemSubtotal = unitPrice * item.quantity;
                 return {
                   productId:
                     product!.productId,
@@ -497,11 +517,11 @@ customerLongitude:
                   quantity:
                     item.quantity,
 
-                  unitPrice:
-                    product!.price,
+                  unitPrice,
 
                   totalPrice:
                     itemSubtotal,
+                  addOns: selectedAddOns,
                   sgstAmount: outlet.gstin
                     ? Math.round(itemSubtotal * product!.sgstRate) / 100
                     : 0,

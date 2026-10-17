@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readProductAddOns } from "@/lib/product-addons";
 
 type Delivery = {
   id: string;
@@ -27,6 +28,7 @@ type Delivery = {
     };
     items: {
       quantity: number;
+      addOns: unknown;
       product: {
         name: string;
       };
@@ -525,6 +527,7 @@ export default function DeliveryPage() {
 
                             <span className="text-sm font-bold text-gray-800">
                               {item.product.name}
+                              {readProductAddOns(item.addOns).length > 0 && <span className="mt-1 block text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => addOn.name).join(", ")}</span>}
                             </span>
                           </div>
 

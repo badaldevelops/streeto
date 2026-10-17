@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { readProductAddOns, type ProductAddOn } from "@/lib/product-addons";
 
 const cartStorageKey = "streeto:customer-cart";
 
@@ -19,9 +20,16 @@ type CartItem = {
   companyName: string;
   outletId: string;
   outletName: string;
+  addOns: ProductAddOn[];
+  lineId: string;
 };
 
-type AddCartItem = Omit<CartItem, "quantity">;
+type AddCartItem = Omit<CartItem, "quantity" | "lineId"> & { lineId?: string };
+
+export function getCartLineId(productId: string, addOns: ProductAddOn[] = []) {
+  const addOnIds = addOns.map((addOn) => addOn.id).sort().join(",");
+  return `${productId}::${addOnIds}`;
+}
 
 type CartContextType = {
   items: CartItem[];
@@ -60,7 +68,7 @@ export function CartProvider({
       const stored = window.localStorage.getItem(cartStorageKey);
       const parsed: unknown = stored ? JSON.parse(stored) : [];
       if (Array.isArray(parsed)) {
-        const restoredItems = parsed.filter((item): item is CartItem =>
+        const restoredItems = parsed.filter((item): item is Omit<CartItem, "addOns" | "lineId"> & Partial<Pick<CartItem, "addOns" | "lineId">> =>
           item && typeof item.productId === "string" &&
           typeof item.productName === "string" &&
           typeof item.price === "number" &&
@@ -70,7 +78,10 @@ export function CartProvider({
           typeof item.companyName === "string" &&
           typeof item.outletId === "string" &&
           typeof item.outletName === "string"
-        );
+        ).map((item) => {
+          const addOns = readProductAddOns(item.addOns);
+          return { ...item, addOns, lineId: getCartLineId(item.productId, addOns) };
+        });
         setItems((current) =>
           cartChangedBeforeLoad.current ? current : restoredItems
         );
@@ -141,6 +152,7 @@ function clearCart() {
           return [
             {
               ...item,
+              lineId: item.lineId ?? getCartLineId(item.productId, item.addOns),
               quantity: 1,
             },
           ];
@@ -148,8 +160,7 @@ function clearCart() {
       }
 
       const existing = current.find(
-        (cartItem) =>
-          cartItem.productId === item.productId
+        (cartItem) => cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns))
       );
 
       if (existing) {
@@ -168,18 +179,19 @@ function clearCart() {
         ...current,
         {
           ...item,
+          lineId: item.lineId ?? getCartLineId(item.productId, item.addOns),
           quantity: 1,
         },
       ];
     });
   }
 
-  function decreaseItem(productId: string) {
+  function decreaseItem(lineId: string) {
     if (!cartLoaded) cartChangedBeforeLoad.current = true;
     setItems((current) =>
       current
         .map((item) =>
-          item.productId === productId
+          item.lineId === lineId
             ? {
                 ...item,
                 quantity:
@@ -202,7 +214,7 @@ function clearCart() {
   const cartTotal = items.reduce(
     (total, item) =>
       total +
-      item.price * item.quantity,
+      (item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity,
     0
   );
 

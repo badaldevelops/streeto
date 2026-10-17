@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { readProductAddOns } from "@/lib/product-addons";
 
 type Order = {
   id: string;
@@ -28,6 +29,7 @@ type Order = {
     quantity: number;
     unitPrice: number;
     totalPrice: number;
+    addOns: unknown;
     sgstAmount: number;
     cgstAmount: number;
     product: {
@@ -902,6 +904,7 @@ setPollingEnabled(true);
                                   <p className="font-bold text-gray-900">
                                     {item.product.name}
                                   </p>
+                                  {readProductAddOns(item.addOns).length > 0 && <p className="mt-1 text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+${formatMoney(addOn.price)})`).join(", ")}</p>}
 
                                   <p className="mt-1 text-xs text-gray-500">
                                     {item.quantity} ×{" "}

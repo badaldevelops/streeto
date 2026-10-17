@@ -83,13 +83,15 @@ export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }
   const checkoutSgst = outletLocation?.gstin
     ? items.reduce((sum, item) => {
         const rates = outletLocation.taxProducts?.find((entry) => entry.id === item.productId);
-        return sum + Math.round(item.price * item.quantity * (rates?.sgstRate ?? 0)) / 100;
+        const linePrice = item.price + item.addOns.reduce((total, addOn) => total + addOn.price, 0);
+        return sum + Math.round(linePrice * item.quantity * (rates?.sgstRate ?? 0)) / 100;
       }, 0)
     : 0;
   const checkoutCgst = outletLocation?.gstin
     ? items.reduce((sum, item) => {
         const rates = outletLocation.taxProducts?.find((entry) => entry.id === item.productId);
-        return sum + Math.round(item.price * item.quantity * (rates?.cgstRate ?? 0)) / 100;
+        const linePrice = item.price + item.addOns.reduce((total, addOn) => total + addOn.price, 0);
+        return sum + Math.round(linePrice * item.quantity * (rates?.cgstRate ?? 0)) / 100;
       }, 0)
     : 0;
   const checkoutTaxTotal = (Math.round(checkoutSgst * 100) + Math.round(checkoutCgst * 100)) / 100;
@@ -194,6 +196,7 @@ export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }
           items: items.map((item) => ({
             outletProductId: item.productId,
             quantity: item.quantity,
+            addOnIds: item.addOns.map((addOn) => addOn.id),
           })),
         }),
       });
@@ -423,7 +426,7 @@ export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }
           <div className="mt-5 divide-y divide-gray-100">
             {items.map((item) => (
               <div
-                key={item.productId}
+                key={item.lineId}
                 className="flex items-center justify-between gap-4 py-3"
               >
                 <div className="min-w-0">
@@ -432,12 +435,13 @@ export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }
                   </p>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    ₹{item.price} × {item.quantity}
+                    ₹{(item.price + item.addOns.reduce((total, addOn) => total + addOn.price, 0)).toFixed(2)} × {item.quantity}
                   </p>
+                  {item.addOns.length > 0 && <p className="mt-1 text-xs text-emerald-700">Extras: {item.addOns.map((addOn) => addOn.name).join(", ")}</p>}
                 </div>
 
                 <p className="shrink-0 font-bold text-gray-900">
-                  ₹{item.price * item.quantity}
+                  ₹{((item.price + item.addOns.reduce((total, addOn) => total + addOn.price, 0)) * item.quantity).toFixed(2)}
                 </p>
               </div>
             ))}
