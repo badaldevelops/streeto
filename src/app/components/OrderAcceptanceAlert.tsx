@@ -64,6 +64,7 @@ export default function OrderAcceptanceAlert({
             </div>
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl">🛍️</div>
           </div>
+          <button type="button" onClick={onDismiss} aria-label="Close order alert" className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-2xl font-bold text-white hover:bg-white/25">×</button>
         </div>
 
         <div className="max-h-[58vh] space-y-5 overflow-y-auto px-5 py-5 sm:px-8">

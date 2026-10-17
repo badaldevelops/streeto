@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import OrderAcceptanceAlert from "@/app/components/OrderAcceptanceAlert";
 
 const seenOrdersKey = "streeto:business-alerts-seen-orders";
@@ -18,6 +19,7 @@ type IncomingOrder = {
 };
 
 export default function BusinessOrderMonitor() {
+  const router = useRouter();
   const [pendingOrder, setPendingOrder] = useState<IncomingOrder | null>(null);
   const seenOrderIds = useRef(new Set<string>());
 
@@ -83,7 +85,8 @@ export default function BusinessOrderMonitor() {
       // The current page can still dismiss alerts when storage is unavailable.
     }
     setPendingOrder(null);
-  }, [pendingOrder]);
+    router.push("/business-admin/orders");
+  }, [pendingOrder, router]);
 
   if (!pendingOrder) return null;
   return <OrderAcceptanceAlert

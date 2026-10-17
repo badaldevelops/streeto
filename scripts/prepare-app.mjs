@@ -30,9 +30,11 @@ if (app === "customer") {
   const displayName = app === "business" ? "Qtoo Business" : "Qtoo Admin";
   const themeColor = app === "business" ? "#174b3a" : "#3b317c";
   const icon = app === "business" ? "/icon-business.svg" : "/icon-admin.svg";
-  const audioUnlockImport = app === "business" ? 'import BusinessAudioUnlock from "@/app/components/BusinessAudioUnlock";\n' : "";
-  const audioUnlockComponent = app === "business" ? "<BusinessAudioUnlock />" : "";
-  await writeFile(path.join(appDir, "layout.tsx"), `import type { Metadata, Viewport } from "next";\nimport { Geist } from "next/font/google";\nimport "./globals.css";\n${audioUnlockImport}const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });\nexport const metadata: Metadata = { title: "${displayName}", applicationName: "${displayName}", manifest: "/manifest.webmanifest", icons: { icon: [{ url: "${icon}", type: "image/svg+xml" }], apple: [{ url: "${icon}" }] }, appleWebApp: { title: "${displayName}", capable: true, statusBarStyle: "default" }, description: "${app === "business" ? "Manage your Qtoo business and outlets." : "Manage the Qtoo marketplace."}" };\nexport const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, themeColor: "${themeColor}" };\nexport default function RootLayout({ children }: LayoutProps<"/">) { return <html lang="en" className={\`${"${geist.variable}"} h-full antialiased\`}><body className="min-h-full">${audioUnlockComponent}{children}</body></html>; }\n`);
+  const businessImports = app === "business"
+    ? 'import BusinessAudioUnlock from "@/app/components/BusinessAudioUnlock";\nimport BusinessAdminOrderAlerts from "@/app/components/BusinessAdminOrderAlerts";\n'
+    : "";
+  const businessComponents = app === "business" ? "<BusinessAudioUnlock /><BusinessAdminOrderAlerts />" : "";
+  await writeFile(path.join(appDir, "layout.tsx"), `import type { Metadata, Viewport } from "next";\nimport { Geist } from "next/font/google";\nimport "./globals.css";\n${businessImports}const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });\nexport const metadata: Metadata = { title: "${displayName}", applicationName: "${displayName}", manifest: "/manifest.webmanifest", icons: { icon: [{ url: "${icon}", type: "image/svg+xml" }], apple: [{ url: "${icon}" }] }, appleWebApp: { title: "${displayName}", capable: true, statusBarStyle: "default" }, description: "${app === "business" ? "Manage your Qtoo business and outlets." : "Manage the Qtoo marketplace."}" };\nexport const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false, themeColor: "${themeColor}" };\nexport default function RootLayout({ children }: LayoutProps<"/">) { return <html lang="en" className={\`${"${geist.variable}"} h-full antialiased\`}><body className="min-h-full">${businessComponents}{children}</body></html>; }\n`);
   const rootPage = app === "business" ? 'import { redirect } from "next/navigation"; export default function Home() { redirect("/business-login"); }\n' : 'import { redirect } from "next/navigation"; export default function Home() { redirect("/login"); }\n';
   await writeFile(path.join(appDir, "page.tsx"), rootPage);
   const routeSet = app === "business"
@@ -40,9 +42,7 @@ if (app === "customer") {
     : ["login", "admin", "forgot-password", "reset-password"];
   for (const route of routeSet) await copy(route);
   const routeLayout = app === "business" ? "business-admin/layout.tsx" : "admin/layout.tsx";
-  const routeLayoutContent = app === "business"
-    ? 'import BusinessAdminOrderAlerts from "@/app/components/BusinessAdminOrderAlerts"; export default function AppRoleLayout({ children }: { children: React.ReactNode }) { return <><BusinessAdminOrderAlerts />{children}</>; }\n'
-    : "export default function AppRoleLayout({ children }: { children: React.ReactNode }) { return children; }\n";
+  const routeLayoutContent = "export default function AppRoleLayout({ children }: { children: React.ReactNode }) { return children; }\n";
   await writeFile(path.join(appDir, routeLayout), routeLayoutContent);
   const proxyDir = path.join(appDir, "api", "[[...path]]");
   await mkdir(proxyDir, { recursive: true });
