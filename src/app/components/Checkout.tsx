@@ -27,6 +27,7 @@ type PendingCashfreePayment = {
 export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }) {
   const {
     items,
+    cartLoaded,
     cartTotal,
     cartCount,
     cartCompanyName,
@@ -242,8 +243,25 @@ export default function Checkout({ pickupOnly = true }: { pickupOnly?: boolean }
     );
   }
 
+  if (!cartLoaded) {
+    return (
+      <div className="p-6 sm:p-8" role="status" aria-live="polite">
+        <h2 className="text-xl font-extrabold text-gray-950">Opening your checkout…</h2>
+        <p className="mt-2 text-sm text-gray-600">Loading the items in your cart.</p>
+        <div className="mt-5 h-16 animate-pulse rounded-2xl bg-orange-50" />
+      </div>
+    );
+  }
+
   if (cartCount === 0) {
-    return null;
+    return (
+      <div className="p-6 text-center sm:p-10">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-3xl" aria-hidden="true">🛒</div>
+        <h2 className="mt-4 text-xl font-extrabold text-gray-950">Your cart is empty</h2>
+        <p className="mt-2 text-sm text-gray-600">Add an item from an outlet menu to continue checkout.</p>
+        <a href="/#discover" className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-orange-600 px-5 font-extrabold text-white hover:bg-orange-700">Browse outlets</a>
+      </div>
+    );
   }
 
   return (

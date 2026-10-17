@@ -24,6 +24,7 @@ type AddCartItem = Omit<CartItem, "quantity">;
 
 type CartContextType = {
   items: CartItem[];
+  cartLoaded: boolean;
   clearCart: () => void;
   addItem: (item: AddCartItem) => void;
   decreaseItem: (productId: string) => void;
@@ -221,6 +222,7 @@ function clearCart() {
     <CartContext.Provider
       value={{
         items,
+        cartLoaded,
         clearCart,
         addItem,
         decreaseItem,
