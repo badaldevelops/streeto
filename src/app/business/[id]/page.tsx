@@ -20,6 +20,7 @@ type BusinessPageProps = {
     outletId?: string;
     pickupOnly?: string;
     orderType?: string;
+    section?: string;
   }>;
 };
 
@@ -310,7 +311,16 @@ if (user?.role === "SUPER_ADMIN") {
                       </div>
                       <span className="rounded-full border border-orange-100 bg-white px-3 py-1.5 text-xs font-bold text-gray-500 shadow-sm">{outlet.outletProducts.length} items</span>
                     </div>
-                    <CustomerMenuSections products={outlet.outletProducts} outletId={outlet.id} outletName={outlet.name} companyId={business.id} companyName={business.name} storeOpen={business.isOpen} />
+                    <CustomerMenuSections
+                      products={outlet.outletProducts}
+                      outletId={outlet.id}
+                      outletName={outlet.name}
+                      companyId={business.id}
+                      companyName={business.name}
+                      storeOpen={business.isOpen}
+                      selectedCategory={query.section || null}
+                      baseHref={`/business/${business.id}?outletId=${encodeURIComponent(outlet.id)}&pickupOnly=${pickupOnly ? "1" : "0"}&orderType=${encodeURIComponent(initialOrderType)}`}
+                    />
                   </>
                 )}
               </section>

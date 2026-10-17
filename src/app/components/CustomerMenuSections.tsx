@@ -17,6 +17,8 @@ export default function CustomerMenuSections({
   companyId,
   companyName,
   storeOpen,
+  selectedCategory,
+  baseHref,
 }: {
   products: MenuProduct[];
   outletId: string;
@@ -24,6 +26,8 @@ export default function CustomerMenuSections({
   companyId: string;
   companyName: string;
   storeOpen: boolean;
+  selectedCategory: string | null;
+  baseHref: string;
 }) {
   const groups = new Map<string, MenuProduct[]>();
   for (const product of products) {
@@ -31,24 +35,24 @@ export default function CustomerMenuSections({
     groups.set(category, [...(groups.get(category) ?? []), product]);
   }
   const sections = Array.from(groups.entries());
-  const sectionId = (index: number) => `menu-${outletId}-${index}`;
-  const allSectionId = `menu-${outletId}-all`;
+  const visibleSections = selectedCategory
+    ? (groups.has(selectedCategory) ? [[selectedCategory, groups.get(selectedCategory)!] as [string, MenuProduct[]]] : [])
+    : sections;
+  const sectionHref = (category?: string) => category
+    ? `${baseHref}&section=${encodeURIComponent(category)}`
+    : baseHref;
 
   return (
     <>
       <nav aria-label={`${outletName} menu sections`} className="mb-5 flex snap-x gap-2 overflow-x-auto scroll-smooth pb-2">
-        <a href={`#${allSectionId}`} className="shrink-0 snap-start rounded-full border border-orange-200 bg-orange-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700">All</a>
-        {sections.map(([category], index) => (
-          <a key={category} href={`#${sectionId(index)}`} className="shrink-0 snap-start rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-extrabold text-gray-700 shadow-sm hover:border-orange-400 hover:text-orange-700">{category}</a>
+        <a href={sectionHref()} aria-current={!selectedCategory ? "page" : undefined} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${!selectedCategory ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>All</a>
+        {sections.map(([category]) => (
+          <a key={category} href={sectionHref(category)} aria-current={selectedCategory === category ? "page" : undefined} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${selectedCategory === category ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>{category}</a>
         ))}
       </nav>
-      <div id={allSectionId} className="scroll-mt-28 space-y-8">
-        <div className="border-b border-orange-100 pb-3">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">Complete menu</p>
-          <h4 className="mt-1 text-xl font-black text-gray-950 sm:text-2xl">All items</h4>
-        </div>
-        {sections.map(([category, categoryProducts], index) => (
-          <section key={category} id={sectionId(index)} className="scroll-mt-28">
+      <div className="space-y-8">
+        {visibleSections.map(([category, categoryProducts]) => (
+          <section key={category}>
             <div className="mb-3 flex items-end justify-between border-b border-orange-100 pb-3">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">Menu section</p>
