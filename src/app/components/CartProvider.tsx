@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -52,13 +53,14 @@ export function CartProvider({
   );
   const [cartLoaded, setCartLoaded] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const cartChangedBeforeLoad = useRef(false);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(cartStorageKey);
       const parsed: unknown = stored ? JSON.parse(stored) : [];
       if (Array.isArray(parsed)) {
-        setItems(parsed.filter((item): item is CartItem =>
+        const restoredItems = parsed.filter((item): item is CartItem =>
           item && typeof item.productId === "string" &&
           typeof item.productName === "string" &&
           typeof item.price === "number" &&
@@ -68,7 +70,10 @@ export function CartProvider({
           typeof item.companyName === "string" &&
           typeof item.outletId === "string" &&
           typeof item.outletName === "string"
-        ));
+        );
+        setItems((current) =>
+          cartChangedBeforeLoad.current ? current : restoredItems
+        );
       }
     } catch {
       // Keep the cart usable when browser storage is unavailable or malformed.
@@ -95,11 +100,13 @@ function closeCart() {
 }
 
 function clearCart() {
+  if (!cartLoaded) cartChangedBeforeLoad.current = true;
   setItems([]);
   setIsCartOpen(false);
 }
 
   function addItem(item: AddCartItem) {
+    if (!cartLoaded) cartChangedBeforeLoad.current = true;
     setItems((current) => {
       /*
        * Cart ek hi business aur ek hi outlet
@@ -168,6 +175,7 @@ function clearCart() {
   }
 
   function decreaseItem(productId: string) {
+    if (!cartLoaded) cartChangedBeforeLoad.current = true;
     setItems((current) =>
       current
         .map((item) =>
