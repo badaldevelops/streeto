@@ -6,7 +6,7 @@ export type ProductAddOn = {
 
 export function parseProductAddOns(value: unknown): ProductAddOn[] | null {
   if (value === undefined || value === null) return [];
-  if (!Array.isArray(value) || value.length > 20) return null;
+  if (!Array.isArray(value)) return null;
 
   const result: ProductAddOn[] = [];
   const ids = new Set<string>();

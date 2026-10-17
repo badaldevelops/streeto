@@ -32,15 +32,21 @@ export default function CustomerMenuSections({
   }
   const sections = Array.from(groups.entries());
   const sectionId = (index: number) => `menu-${outletId}-${index}`;
+  const allSectionId = `menu-${outletId}-all`;
 
   return (
     <>
       <nav aria-label={`${outletName} menu sections`} className="mb-5 flex snap-x gap-2 overflow-x-auto scroll-smooth pb-2">
+        <a href={`#${allSectionId}`} className="shrink-0 snap-start rounded-full border border-orange-200 bg-orange-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-orange-700">All</a>
         {sections.map(([category], index) => (
           <a key={category} href={`#${sectionId(index)}`} className="shrink-0 snap-start rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-extrabold text-gray-700 shadow-sm hover:border-orange-400 hover:text-orange-700">{category}</a>
         ))}
       </nav>
-      <div className="space-y-8">
+      <div id={allSectionId} className="scroll-mt-28 space-y-8">
+        <div className="border-b border-orange-100 pb-3">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">Complete menu</p>
+          <h4 className="mt-1 text-xl font-black text-gray-950 sm:text-2xl">All items</h4>
+        </div>
         {sections.map(([category, categoryProducts], index) => (
           <section key={category} id={sectionId(index)} className="scroll-mt-28">
             <div className="mb-3 flex items-end justify-between border-b border-orange-100 pb-3">

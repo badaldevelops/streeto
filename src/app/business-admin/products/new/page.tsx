@@ -288,6 +288,7 @@ if (!price || Number(price) < 0) {
           />
           <label htmlFor="menuCategory" style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "#374151", marginTop: "20px", marginBottom: "8px" }}>Menu section</label>
           <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", outline: "none", fontSize: "15px" }} />
+          <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>Type any section name you want. Reuse the same name to put products together; a new section appears after you save its first product.</p>
           <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
 <div
   style={{

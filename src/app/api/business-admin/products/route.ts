@@ -169,7 +169,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Enter a menu section name up to 60 characters." }, { status: 400 });
     }
     if (!addOns) {
-      return NextResponse.json({ error: "Check each add-on name and price. You can add up to 20 per product." }, { status: 400 });
+      return NextResponse.json({ error: "Check each add-on name and price." }, { status: 400 });
     }
 
     if (!outletId) {
@@ -549,7 +549,7 @@ export async function PATCH(request: Request) {
       if (body.addOns !== undefined) {
         const addOns = parseProductAddOns(body.addOns);
         if (!addOns) {
-          return NextResponse.json({ error: "Check each add-on name and price. You can add up to 20 per product." }, { status: 400 });
+          return NextResponse.json({ error: "Check each add-on name and price." }, { status: 400 });
         }
         outletProductData.addOns = addOns as Prisma.InputJsonValue;
       }

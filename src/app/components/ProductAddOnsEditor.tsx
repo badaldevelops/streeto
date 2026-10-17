@@ -14,15 +14,14 @@ export default function ProductAddOnsEditor({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="font-extrabold text-gray-950">Optional add-ons</h2>
-          <p className="mt-1 text-xs text-gray-600">Examples: Extra cheese ₹20, Paneer ₹35. Customers choose these per item.</p>
+          <p className="mt-1 text-xs text-gray-600">Add as many choices as needed, with your own names and prices. These options apply only to this product.</p>
         </div>
         <button
           type="button"
-          disabled={value.length >= 20}
           onClick={() => onChange([...value, { id: crypto.randomUUID(), name: "", price: "" }])}
           className="shrink-0 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
-          + Add
+          + Add option
         </button>
       </div>
       {value.length > 0 && (

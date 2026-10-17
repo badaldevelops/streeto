@@ -574,6 +574,7 @@ const [cgstRate, setCgstRate] = useState("");
           <div style={{ marginBottom: "20px" }}>
             <label htmlFor="menuCategory" style={{ display: "block", fontWeight: 700, marginBottom: "8px", color: "#111827" }}>Menu section</label>
             <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", padding: "12px 14px", border: "1px solid #d1d5db", borderRadius: "10px", fontSize: "15px", boxSizing: "border-box" }} />
+            <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>Use any section name. Products with the same name appear together in the menu.</p>
             <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
           </div>
 
