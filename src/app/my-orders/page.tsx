@@ -691,10 +691,18 @@ export default function MyOrdersPage() {
                               href={getOutletDirectionsUrl(order.outlet)!}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-extrabold text-orange-800 transition hover:border-orange-300 hover:bg-orange-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+                              className="group mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                             >
-                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 12h15m-6-6 6 6-6 6"/></svg>
-                              Get directions
+                              <span className="flex items-center gap-3">
+                                <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700 group-hover:bg-blue-100">
+                                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5.5 9 3l6 2.5L20 3v15.5L15 21l-6-2.5L4 21V5.5Z"/><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v15.5M15 5.5V21M12 8.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7s-3.5-3-3.5-5.5a3.5 3.5 0 1 1 7 0C15.5 12.5 12 15.5 12 15.5Z"/></svg>
+                                </span>
+                                <span>
+                                  <span className="block text-sm font-extrabold text-gray-900">Open in Google Maps</span>
+                                  <span className="mt-0.5 block text-xs font-medium text-gray-500">Get directions to the outlet</span>
+                                </span>
+                              </span>
+                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-blue-700" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 4h6v6m0-6-9 9"/><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
                             </a>
                           )}
                         </div>
