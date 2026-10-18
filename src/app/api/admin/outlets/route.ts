@@ -106,19 +106,25 @@ export async function DELETE(request: Request) {
     const outletId = typeof body.outletId === "string" ? body.outletId.trim() : "";
     if (!outletId) return NextResponse.json({ error: "Outlet ID is required." }, { status: 400 });
 
-    const outlet = await prisma.outlet.findUnique({
-      where: { id: outletId },
-      select: { id: true, _count: { select: { orders: true, payoutRequests: true } } },
-    });
-    if (!outlet) return NextResponse.json({ error: "Outlet not found." }, { status: 404 });
-    if (outlet._count.orders > 0 || outlet._count.payoutRequests > 0) {
-      return NextResponse.json(
-        { error: "This outlet has order or settlement history. Deactivate it to preserve those records." },
-        { status: 409 }
-      );
-    }
-
     await prisma.$transaction(async (tx) => {
+      const outlet = await tx.outlet.findUnique({ where: { id: outletId }, select: { id: true } });
+      if (!outlet) throw new Error("OUTLET_NOT_FOUND");
+
+      const orders = await tx.order.findMany({ where: { outletId }, select: { id: true } });
+      const orderIds = orders.map((order) => order.id);
+      const payoutRequests = await tx.outletPayoutRequest.findMany({ where: { outletId }, select: { id: true } });
+      const payoutRequestIds = payoutRequests.map((request) => request.id);
+
+      await tx.delivery.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.payment.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.payment.updateMany({
+        where: { outletPayoutRequestId: { in: payoutRequestIds } },
+        data: { outletPayoutRequestId: null },
+      });
+      await tx.outletRating.deleteMany({ where: { outletId } });
+      await tx.order.deleteMany({ where: { id: { in: orderIds } } });
+      await tx.outletPayoutRequest.deleteMany({ where: { id: { in: payoutRequestIds } } });
       await tx.user.updateMany({
         where: { outletId, role: "DELIVERY_STAFF" },
         data: { outletId: null, isActive: false, sessionVersion: { increment: 1 } },
@@ -126,14 +132,20 @@ export async function DELETE(request: Request) {
       await tx.user.updateMany({ where: { outletId }, data: { outletId: null } });
       await tx.outletProduct.deleteMany({ where: { outletId } });
       await tx.outlet.delete({ where: { id: outletId } });
-    });
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json({ success: true, message: "Outlet permanently deleted." });
   } catch (error) {
     console.error("Super Admin delete outlet error:", error);
+    if (error instanceof Error && error.message === "OUTLET_NOT_FOUND") {
+      return NextResponse.json({ error: "Outlet not found." }, { status: 404 });
+    }
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
+      return NextResponse.json({ error: "The outlet changed while it was being deleted. Please try again." }, { status: 409 });
+    }
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2003") {
       return NextResponse.json(
-        { error: "This outlet has linked records. Deactivate it to preserve its history." },
+        { error: "A linked outlet record could not be removed. Please retry the delete." },
         { status: 409 }
       );
     }

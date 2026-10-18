@@ -20,13 +20,6 @@ type Stats = {
   offlineOrders: number;
 };
 
-type Company = {
-  id: string;
-  name: string;
-  isActive: boolean;
-  verificationStatus: "PENDING" | "APPROVED";
-};
-
 type BusinessVerificationRequest = {
   id: string;
   name: string;
@@ -80,7 +73,6 @@ export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [deliveryEnabled, setDeliveryEnabled] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [verificationRequests, setVerificationRequests] = useState<BusinessVerificationRequest[]>([]);
   const [foodLicenseAlerts, setFoodLicenseAlerts] = useState<FoodLicenseExpiryAlert[]>([]);
   const [foodLicenseAlertsError, setFoodLicenseAlertsError] = useState("");
@@ -98,9 +90,6 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [outletsError, setOutletsError] = useState("");
 
-  const [updatingCompanyId, setUpdatingCompanyId] = useState("");
-  const [companyStatusMessage, setCompanyStatusMessage] = useState("");
-  const [companyStatusError, setCompanyStatusError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
@@ -134,14 +123,12 @@ export default function AdminPage() {
 
         const [
           statsResponse,
-          companiesResponse,
           outletsResponse,
           verificationResponse,
           foodLicenseAlertsResponse,
           deliverySettingResponse,
         ] = await Promise.all([
           fetch("/api/admin-stats"),
-          fetch("/api/admin/companies"),
           fetch("/api/admin/outlets"),
           fetch("/api/admin/business-verifications", { cache: "no-store" }),
           fetch("/api/admin/food-license-expiry", { cache: "no-store" }),
@@ -160,15 +147,6 @@ export default function AdminPage() {
           );
         } else if (statsData.stats) {
           setStats(statsData.stats);
-        }
-
-        if (companiesResponse.ok) {
-          const companiesData =
-            (await companiesResponse.json()) as {
-              companies?: Company[];
-            };
-
-          setCompanies(companiesData.companies || []);
         }
 
         if (verificationResponse.ok) {
@@ -265,39 +243,6 @@ export default function AdminPage() {
     }
   }
 
-  async function toggleCompanyStatus(company: Company) {
-    const nextIsActive = !company.isActive;
-    if (!nextIsActive && !window.confirm(`Deactivate ${company.name}? Its admins will lose access and customers will no longer see or order from its outlets.`)) {
-      return;
-    }
-
-    setUpdatingCompanyId(company.id);
-    setCompanyStatusMessage("");
-    setCompanyStatusError("");
-    try {
-      const response = await fetch("/api/admin/companies", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: company.id, isActive: nextIsActive }),
-      });
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setCompanyStatusError(result.error || "Could not update business status.");
-        return;
-      }
-
-      setCompanies((current) => current.map((item) => item.id === company.id
-        ? { ...item, isActive: nextIsActive }
-        : item));
-      setCompanyStatusMessage(`${company.name} is now ${nextIsActive ? "active" : "deactivated"}.`);
-    } catch (error) {
-      console.error("Update business status failed:", error);
-      setCompanyStatusError("Could not update business status.");
-    } finally {
-      setUpdatingCompanyId("");
-    }
-  }
-
   async function approveBusiness(request: BusinessVerificationRequest) {
     setApprovingCompanyId(request.id);
     setVerificationError("");
@@ -314,9 +259,6 @@ export default function AdminPage() {
         return;
       }
       setVerificationRequests((current) => current.filter((item) => item.id !== request.id));
-      setCompanies((current) => current.map((company) => company.id === request.id
-        ? { ...company, isActive: true, verificationStatus: "APPROVED" }
-        : company));
       setVerificationMessage(`${request.name} is verified and active. The full Aadhaar number has been cleared.`);
     } catch {
       setVerificationError("Unable to approve this business. Try again.");
@@ -608,24 +550,6 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="admin-section">
-          <p className="admin-section-label">Business access</p>
-          <h2 className="admin-section-title">Manage active businesses</h2>
-          <p className="admin-section-description">Deactivate or reactivate businesses that have already passed verification.</p>
-          {companyStatusMessage && <div className="admin-alert admin-alert-success">{companyStatusMessage}</div>}
-          {companyStatusError && <div className="admin-alert admin-alert-error">{companyStatusError}</div>}
-          <div className="mt-4 space-y-3">
-            {companies.map((company) => {
-              const pending = company.verificationStatus === "PENDING";
-              return <div key={company.id} className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="font-extrabold text-gray-900">{company.name}</p><p className={`mt-1 text-xs font-bold ${pending ? "text-amber-700" : company.isActive ? "text-emerald-700" : "text-red-600"}`}>{pending ? "Verification pending" : company.isActive ? "Active" : "Deactivated"}</p></div>
-                <button type="button" onClick={() => void toggleCompanyStatus(company)} disabled={pending || updatingCompanyId === company.id} className={`rounded-xl px-4 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50 ${company.isActive ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>{pending ? "Review request above" : updatingCompanyId === company.id ? "Saving…" : company.isActive ? "Deactivate business" : "Activate business"}</button>
-              </div>;
-            })}
-            {!companies.length && <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No businesses have been registered yet.</p>}
-          </div>
-        </section>
-
         {/* PLATFORM MANAGEMENT */}
         <section className="admin-management">
           <div className="admin-management-header">
@@ -639,57 +563,6 @@ export default function AdminPage() {
           </div>
 
           <div className="admin-management-grid">
-
-            {/* ORDERS */}
-            <div className="admin-management-card">
-              <div className="admin-management-icon">
-                📦
-              </div>
-
-              <h2 className="admin-management-title">
-                Orders
-              </h2>
-
-              <p className="admin-management-description">
-                View and manage customer orders.
-              </p>
-
-              <div className="admin-management-footer">
-                <span>
-                  Admin Orders
-                </span>
-
-                <span>
-                  →
-                </span>
-              </div>
-            </div>
-
-            {/* PRODUCTS */}
-            <div className="admin-management-card">
-              <div className="admin-management-icon">
-                🛍️
-              </div>
-
-              <h2 className="admin-management-title">
-                Products
-              </h2>
-
-              <p className="admin-management-description">
-                Manage products, prices and availability.
-              </p>
-
-              <div className="admin-management-footer">
-                <span>
-                  Business Admin
-                </span>
-
-                <span>
-                  →
-                </span>
-              </div>
-            </div>
-
             {/* OUTLETS */}
             <button
               type="button"

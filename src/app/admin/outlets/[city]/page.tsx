@@ -158,7 +158,7 @@ export default function AdminCityOutletsPage() {
 
   async function deleteOutlet(outlet: Outlet) {
     const confirmed = window.confirm(
-      `Permanently delete "${outlet.name}"? This cannot be undone. Outlets with order or settlement history can only be deactivated.`
+      `Permanently delete "${outlet.name}" and all of its orders, payments, ratings and settlement records? This cannot be undone.`
     );
     if (!confirmed) return;
 
@@ -325,7 +325,7 @@ export default function AdminCityOutletsPage() {
               return (
                 <div
                   key={outlet.id}
-                  className="rounded-2xl border bg-white p-5 shadow-sm"
+                  className="min-w-0 rounded-2xl border bg-white p-5 shadow-sm"
                 >
 
                   {/* OUTLET NAME */}
@@ -334,7 +334,7 @@ export default function AdminCityOutletsPage() {
 
                     <div>
 
-                      <h2 className="text-lg font-bold text-black">
+                      <h2 className="break-words text-lg font-bold text-black">
                         {outlet.name}
                       </h2>
 
@@ -366,7 +366,7 @@ export default function AdminCityOutletsPage() {
                       Location
                     </p>
 
-                    <p className="mt-1 text-sm text-gray-800">
+                    <p className="mt-1 break-words text-sm text-gray-800">
                       📍{" "}
                       {outlet.address ||
                         "Address not available"}
