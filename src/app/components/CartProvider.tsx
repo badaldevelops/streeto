@@ -165,7 +165,7 @@ function clearCart() {
 
       if (existing) {
         return current.map((cartItem) =>
-          cartItem.productId === item.productId
+          cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns))
             ? {
                 ...cartItem,
                 quantity:
