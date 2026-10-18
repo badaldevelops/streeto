@@ -39,9 +39,9 @@ export default function CustomerMenuSections({
     groups.set(category, [...(groups.get(category) ?? []), product]);
   }
   const sections = Array.from(groups.entries());
-  const visibleSections = activeCategory
-    ? (groups.has(activeCategory) ? [[activeCategory, groups.get(activeCategory)!] as [string, MenuProduct[]]] : [])
-    : sections;
+  const visibleProducts = activeCategory
+    ? groups.get(activeCategory) ?? []
+    : sections.flatMap(([, categoryProducts]) => categoryProducts);
 
   return (
     <>
@@ -51,18 +51,9 @@ export default function CustomerMenuSections({
           <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${activeCategory === category ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>{category}</button>
         ))}
       </nav>
-      <div key={activeCategory ?? "all"} className="menu-category-slide space-y-8">
-        {visibleSections.map(([category, categoryProducts]) => (
-          <section key={category}>
-            <div className="mb-3 flex items-end justify-between border-b border-orange-100 pb-3">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-500">Menu section</p>
-                <h4 className="mt-1 text-xl font-black text-gray-950 sm:text-2xl">{category}</h4>
-              </div>
-              <span className="text-xs font-bold text-gray-500">{categoryProducts.length} items</span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
-              {categoryProducts.map((item) => (
+      <div key={activeCategory ?? "all"} className="menu-category-slide">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
+              {visibleProducts.map((item) => (
                 (() => {
                   const variants = readProductVariants(item.variants);
                   const displayPrice = variants.length > 0 ? Math.min(...variants.map((variant) => variant.price)) : item.price;
@@ -87,9 +78,7 @@ export default function CustomerMenuSections({
                   </article>;
                 })()
               ))}
-            </div>
-          </section>
-        ))}
+        </div>
       </div>
     </>
   );

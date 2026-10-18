@@ -259,15 +259,27 @@ if (user?.role === "SUPER_ADMIN") {
 
                         </div>
                         {outlet.latitude !== null && outlet.longitude !== null && (
-                          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 bg-white sm:max-w-md">
+                          <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:max-w-md">
+                            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                              <div>
+                                <p className="text-sm font-extrabold text-gray-900">Outlet location</p>
+                                <p className="mt-0.5 text-xs font-medium text-gray-500">Find us on the map</p>
+                              </div>
+                              <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                              </span>
+                            </div>
                             <iframe
                               title={`${outlet.name} location`}
                               src={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}&z=15&output=embed`}
                               loading="lazy"
                               referrerPolicy="no-referrer-when-downgrade"
-                              className="h-36 w-full border-0"
+                              className="h-40 w-full border-0"
                             />
-                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noopener noreferrer" className="block px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-50">Open directions in Maps ↗</a>
+                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 border-t border-gray-100 px-4 py-3 text-sm font-extrabold text-orange-700 transition hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-orange-600">
+                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 12h15m-6-6 6 6-6 6"/></svg>
+                              Get directions
+                            </a>
                           </div>
                         )}
                       </div>

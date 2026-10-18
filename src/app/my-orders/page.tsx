@@ -691,9 +691,10 @@ export default function MyOrdersPage() {
                               href={getOutletDirectionsUrl(order.outlet)!}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-5 py-3.5 text-sm font-extrabold text-white shadow-md shadow-orange-200 transition hover:from-orange-600 hover:to-red-600"
+                              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-extrabold text-orange-800 transition hover:border-orange-300 hover:bg-orange-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
                             >
-                              🗺️ Open Directions in Google Maps
+                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 12h15m-6-6 6 6-6 6"/></svg>
+                              Get directions
                             </a>
                           )}
                         </div>
