@@ -55,6 +55,7 @@ export async function GET() {
           select: {
             orders: true,
             users: true,
+            payoutRequests: true,
           },
         },
       },
@@ -71,6 +72,72 @@ export async function GET() {
       { error: "Unable to load outlets." },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Please login first." }, { status: 401 });
+    if (user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Access denied." }, { status: 403 });
+
+    const body = (await request.json()) as Record<string, unknown>;
+    const outletId = typeof body.outletId === "string" ? body.outletId.trim() : "";
+    if (!outletId || typeof body.isActive !== "boolean") {
+      return NextResponse.json({ error: "Outlet and active status are required." }, { status: 400 });
+    }
+
+    const result = await prisma.outlet.updateMany({ where: { id: outletId }, data: { isActive: body.isActive } });
+    if (result.count === 0) return NextResponse.json({ error: "Outlet not found." }, { status: 404 });
+    return NextResponse.json({ success: true, isActive: body.isActive });
+  } catch (error) {
+    console.error("Super Admin update outlet status error:", error);
+    return NextResponse.json({ error: "Unable to update outlet status." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Please login first." }, { status: 401 });
+    if (user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Access denied." }, { status: 403 });
+
+    const body = (await request.json()) as Record<string, unknown>;
+    const outletId = typeof body.outletId === "string" ? body.outletId.trim() : "";
+    if (!outletId) return NextResponse.json({ error: "Outlet ID is required." }, { status: 400 });
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { id: true, _count: { select: { orders: true, payoutRequests: true } } },
+    });
+    if (!outlet) return NextResponse.json({ error: "Outlet not found." }, { status: 404 });
+    if (outlet._count.orders > 0 || outlet._count.payoutRequests > 0) {
+      return NextResponse.json(
+        { error: "This outlet has order or settlement history. Deactivate it to preserve those records." },
+        { status: 409 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.updateMany({
+        where: { outletId, role: "DELIVERY_STAFF" },
+        data: { outletId: null, isActive: false, sessionVersion: { increment: 1 } },
+      });
+      await tx.user.updateMany({ where: { outletId }, data: { outletId: null } });
+      await tx.outletProduct.deleteMany({ where: { outletId } });
+      await tx.outlet.delete({ where: { id: outletId } });
+    });
+
+    return NextResponse.json({ success: true, message: "Outlet permanently deleted." });
+  } catch (error) {
+    console.error("Super Admin delete outlet error:", error);
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2003") {
+      return NextResponse.json(
+        { error: "This outlet has linked records. Deactivate it to preserve its history." },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ error: "Unable to delete outlet." }, { status: 500 });
   }
 }
 

@@ -33,6 +33,7 @@ type Outlet = {
   _count?: {
     orders: number;
     users: number;
+    payoutRequests?: number;
   };
 };
 
@@ -58,6 +59,7 @@ export default function AdminCityOutletsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedLocality, setSelectedLocality] = useState("");
+  const [outletActionId, setOutletActionId] = useState("");
 
   useEffect(() => {
     async function loadOutlets() {
@@ -128,6 +130,59 @@ export default function AdminCityOutletsPage() {
       ? outlets.filter((outlet) => !outlet.locality?.trim())
       : outlets.filter((outlet) => outlet.locality?.trim() === selectedLocality)
     : outlets;
+
+  async function toggleOutlet(outlet: Outlet) {
+    try {
+      setOutletActionId(outlet.id);
+      const response = await fetch("/api/admin/outlets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ outletId: outlet.id, isActive: !outlet.isActive }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "Unable to update outlet status.");
+        return;
+      }
+      setOutlets((current) => current.map((item) =>
+        item.id === outlet.id ? { ...item, isActive: data.isActive } : item
+      ));
+    } catch (actionError) {
+      console.error("Update outlet status error:", actionError);
+      alert("Something went wrong while updating the outlet.");
+    } finally {
+      setOutletActionId("");
+    }
+  }
+
+  async function deleteOutlet(outlet: Outlet) {
+    const confirmed = window.confirm(
+      `Permanently delete "${outlet.name}"? This cannot be undone. Outlets with order or settlement history can only be deactivated.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setOutletActionId(outlet.id);
+      const response = await fetch("/api/admin/outlets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ outletId: outlet.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "Unable to delete outlet.");
+        return;
+      }
+      setOutlets((current) => current.filter((item) => item.id !== outlet.id));
+    } catch (actionError) {
+      console.error("Delete outlet error:", actionError);
+      alert("Something went wrong while deleting the outlet.");
+    } finally {
+      setOutletActionId("");
+    }
+  }
 
   if (loading) {
     return (
@@ -406,6 +461,25 @@ export default function AdminCityOutletsPage() {
                       </p>
                     </div>
 
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                    <button
+                      type="button"
+                      onClick={() => toggleOutlet(outlet)}
+                      disabled={outletActionId === outlet.id}
+                      className={`rounded-xl px-3 py-2 text-sm font-bold disabled:opacity-60 ${outlet.isActive ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100" : "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`}
+                    >
+                      {outletActionId === outlet.id ? "Working..." : outlet.isActive ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteOutlet(outlet)}
+                      disabled={outletActionId === outlet.id}
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-60"
+                    >
+                      Delete permanently
+                    </button>
                   </div>
 
                 </div>

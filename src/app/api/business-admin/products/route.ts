@@ -336,6 +336,7 @@ export async function PATCH(request: Request) {
       typeof body.productId === "string"
         ? body.productId.trim()
         : "";
+    const action = body.action === "delete" ? "delete" : "deactivate";
 
     if (!productId) {
       return NextResponse.json(
@@ -707,18 +708,15 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const product =
-      await prisma.product.findFirst({
-        where: {
-          id: productId,
-          companyId: user.companyId,
-        },
-        select: {
-          id: true,
-          name: true,
-          isActive: true,
-        },
-      });
+    const product = await prisma.product.findFirst({
+      where: { id: productId, companyId: user.companyId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        _count: { select: { orderItems: true } },
+      },
+    });
 
     if (!product) {
       return NextResponse.json(
@@ -730,15 +728,30 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const updatedProduct =
-      await prisma.product.update({
-        where: {
-          id: product.id,
-        },
-        data: {
-          isActive: false,
-        },
+    if (action === "delete") {
+      if (product._count.orderItems > 0) {
+        return NextResponse.json(
+          { error: "This product appears in order history and cannot be permanently deleted. Deactivate it to keep past order records." },
+          { status: 409 }
+        );
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.outletProduct.deleteMany({ where: { productId: product.id } });
+        await tx.product.delete({ where: { id: product.id } });
       });
+
+      return NextResponse.json({
+        success: true,
+        message: "Product permanently deleted.",
+        product: { id: product.id },
+      });
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: product.id },
+      data: { isActive: false },
+    });
 
     return NextResponse.json({
       success: true,
@@ -751,9 +764,21 @@ export async function DELETE(request: Request) {
       error
     );
 
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2003"
+    ) {
+      return NextResponse.json(
+        { error: "This product appears in order history and cannot be permanently deleted. Deactivate it to keep past order records." },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       {
-        error: "Unable to deactivate product.",
+        error: "Unable to update product.",
       },
       { status: 500 }
     );

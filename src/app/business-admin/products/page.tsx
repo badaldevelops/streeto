@@ -32,6 +32,7 @@ export default function BusinessAdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [productActionId, setProductActionId] = useState("");
 
   async function loadProducts() {
     try {
@@ -97,6 +98,7 @@ export default function BusinessAdminProductsPage() {
     }
 
     try {
+      setProductActionId(product.id);
       const response = await fetch("/api/business-admin/products", {
         method: "DELETE",
         headers: {
@@ -114,13 +116,44 @@ export default function BusinessAdminProductsPage() {
         return;
       }
 
-      await loadProducts();
+      setProducts((current) => current.map((item) =>
+        item.id === product.id ? { ...item, isActive: false } : item
+      ));
     } catch (error) {
       console.error("Deactivate product error:", error);
 
       alert(
         "Something went wrong while deactivating the product."
       );
+    } finally {
+      setProductActionId("");
+    }
+  }
+
+  async function deleteProduct(product: Product) {
+    const confirmed = window.confirm(
+      `Permanently delete "${product.name}"? This removes it from your catalog. Past orders, if any, will prevent deletion.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setProductActionId(product.id);
+      const response = await fetch("/api/business-admin/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, action: "delete" }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "Unable to delete product.");
+        return;
+      }
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+    } catch (error) {
+      console.error("Delete business product error:", error);
+      alert("Something went wrong while deleting the product.");
+    } finally {
+      setProductActionId("");
     }
   }
 
@@ -393,30 +426,41 @@ export default function BusinessAdminProductsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <button
                       onClick={() =>
                         router.push(
                           `/business-admin/products/edit/${product.id}`
                         )
                       }
-                      className="rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                      disabled={productActionId === product.id}
+                      className="rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
                     >
                       ✏️ Edit
                     </button>
 
                     <button
                       onClick={() => deactivateProduct(product)}
-                      disabled={!product.isActive}
+                      disabled={!product.isActive || productActionId === product.id}
                       className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
                         product.isActive
                           ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
                           : "cursor-not-allowed bg-gray-100 text-gray-400"
                       }`}
                     >
-                      {product.isActive
+                      {productActionId === product.id
+                        ? "Working..."
+                        : product.isActive
                         ? "🚫 Deactivate"
                         : "✓ Deactivated"}
+                    </button>
+
+                    <button
+                      onClick={() => deleteProduct(product)}
+                      disabled={productActionId === product.id}
+                      className="rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-extrabold text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {productActionId === product.id ? "Working..." : "🗑️ Delete"}
                     </button>
                   </div>
                 </div>
