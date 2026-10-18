@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { readProductAddOns, type ProductAddOn } from "@/lib/product-addons";
+import type { ProductVariant } from "@/lib/product-variants";
 
 const cartStorageKey = "streeto:customer-cart";
 
@@ -21,14 +22,15 @@ type CartItem = {
   outletId: string;
   outletName: string;
   addOns: ProductAddOn[];
+  variant: ProductVariant | null;
   lineId: string;
 };
 
 type AddCartItem = Omit<CartItem, "quantity" | "lineId"> & { lineId?: string };
 
-export function getCartLineId(productId: string, addOns: ProductAddOn[] = []) {
+export function getCartLineId(productId: string, addOns: ProductAddOn[] = [], variantId: string | null = null) {
   const addOnIds = addOns.map((addOn) => addOn.id).sort().join(",");
-  return `${productId}::${addOnIds}`;
+  return `${productId}::${variantId ?? ""}::${addOnIds}`;
 }
 
 type CartContextType = {
@@ -68,7 +70,7 @@ export function CartProvider({
       const stored = window.localStorage.getItem(cartStorageKey);
       const parsed: unknown = stored ? JSON.parse(stored) : [];
       if (Array.isArray(parsed)) {
-        const restoredItems = parsed.filter((item): item is Omit<CartItem, "addOns" | "lineId"> & Partial<Pick<CartItem, "addOns" | "lineId">> =>
+        const restoredItems = parsed.filter((item): item is Omit<CartItem, "addOns" | "lineId" | "variant"> & Partial<Pick<CartItem, "addOns" | "lineId" | "variant">> =>
           item && typeof item.productId === "string" &&
           typeof item.productName === "string" &&
           typeof item.price === "number" &&
@@ -80,7 +82,10 @@ export function CartProvider({
           typeof item.outletName === "string"
         ).map((item) => {
           const addOns = readProductAddOns(item.addOns);
-          return { ...item, addOns, lineId: getCartLineId(item.productId, addOns) };
+          const variant = item.variant && typeof item.variant.id === "string" && typeof item.variant.name === "string" && Number.isFinite(item.variant.price)
+            ? item.variant as ProductVariant
+            : null;
+          return { ...item, addOns, variant, lineId: getCartLineId(item.productId, addOns, variant?.id ?? null) };
         });
         setItems((current) =>
           cartChangedBeforeLoad.current ? current : restoredItems
@@ -152,7 +157,7 @@ function clearCart() {
           return [
             {
               ...item,
-              lineId: item.lineId ?? getCartLineId(item.productId, item.addOns),
+              lineId: item.lineId ?? getCartLineId(item.productId, item.addOns, item.variant?.id ?? null),
               quantity: 1,
             },
           ];
@@ -160,12 +165,12 @@ function clearCart() {
       }
 
       const existing = current.find(
-        (cartItem) => cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns))
+        (cartItem) => cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns, item.variant?.id ?? null))
       );
 
       if (existing) {
         return current.map((cartItem) =>
-          cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns))
+          cartItem.lineId === (item.lineId ?? getCartLineId(item.productId, item.addOns, item.variant?.id ?? null))
             ? {
                 ...cartItem,
                 quantity:
@@ -179,7 +184,7 @@ function clearCart() {
         ...current,
         {
           ...item,
-          lineId: item.lineId ?? getCartLineId(item.productId, item.addOns),
+          lineId: item.lineId ?? getCartLineId(item.productId, item.addOns, item.variant?.id ?? null),
           quantity: 1,
         },
       ];
@@ -214,7 +219,7 @@ function clearCart() {
   const cartTotal = items.reduce(
     (total, item) =>
       total +
-      (item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity,
+      ((item.variant?.price ?? item.price) + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity,
     0
   );
 

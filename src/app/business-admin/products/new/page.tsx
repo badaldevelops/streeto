@@ -6,6 +6,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import ProductAddOnsEditor, { type ProductAddOnDraft } from "@/app/components/ProductAddOnsEditor";
+import ProductVariantsEditor, { type ProductVariantDraft } from "@/app/components/ProductVariantsEditor";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ const [name, setName] = useState("");
 const [description, setDescription] = useState("");
 const [category, setCategory] = useState("Other");
 const [addOns, setAddOns] = useState<ProductAddOnDraft[]>([]);
+const [variants, setVariants] = useState<ProductVariantDraft[]>([]);
 
 const [outlets, setOutlets] = useState<
   { id: string; name: string; gstin?: string | null; foodType: "VEG" | "NON_VEG" | "BOTH" }[]
@@ -107,6 +109,7 @@ if (!price || Number(price) < 0) {
   description,
   category,
   addOns: addOns.map((addOn) => ({ id: addOn.id, name: addOn.name, price: Number(addOn.price) })),
+  variants: variants.map((variant) => ({ id: variant.id, name: variant.name, price: Number(variant.price) })),
   outletId,
   price: Number(price),
   gstin,
@@ -290,6 +293,7 @@ if (!price || Number(price) < 0) {
           <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: "10px", padding: "12px", outline: "none", fontSize: "15px" }} />
           <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>Type any section name you want. Reuse the same name to put products together; a new section appears after you save its first product.</p>
           <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
+          <ProductVariantsEditor value={variants} onChange={setVariants} />
 <div
   style={{
     marginTop: "20px",

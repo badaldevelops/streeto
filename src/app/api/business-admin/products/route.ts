@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { safeHttpsUrl } from "@/lib/validation";
 import { parseProductAddOns } from "@/lib/product-addons";
+import { parseProductVariants } from "@/lib/product-variants";
 
 function parseGstin(value: unknown): string | null | "invalid" {
   if (value === undefined || value === null || value === "") return null;
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
         : "";
     const category = typeof body.category === "string" ? body.category.trim() : "Other";
     const addOns = parseProductAddOns(body.addOns);
+    const variants = parseProductVariants(body.variants);
 
     const description =
       typeof body.description === "string"
@@ -170,6 +172,9 @@ export async function POST(request: Request) {
     }
     if (!addOns) {
       return NextResponse.json({ error: "Check each add-on name and price." }, { status: 400 });
+    }
+    if (!variants) {
+      return NextResponse.json({ error: "Check each variant name and price (up to 50 options)." }, { status: 400 });
     }
 
     if (!outletId) {
@@ -251,6 +256,7 @@ export async function POST(request: Request) {
             outletId: outlet.id,
             category,
             addOns,
+            variants,
             price,
             sgstRate: gstin ? sgstRate! : 0,
             cgstRate: gstin ? cgstRate! : 0,
@@ -450,7 +456,8 @@ export async function PATCH(request: Request) {
       body.sgstRate !== undefined ||
       body.cgstRate !== undefined ||
       body.category !== undefined ||
-      body.addOns !== undefined
+      body.addOns !== undefined ||
+      body.variants !== undefined
     ) {
       const outletId =
         body.outletId !== undefined
@@ -533,6 +540,7 @@ export async function PATCH(request: Request) {
       const outletProductData: {
         category?: string;
         addOns?: Prisma.InputJsonValue;
+        variants?: Prisma.InputJsonValue;
         price?: number;
         isAvailable?: boolean;
         isVeg?: boolean;
@@ -552,6 +560,13 @@ export async function PATCH(request: Request) {
           return NextResponse.json({ error: "Check each add-on name and price." }, { status: 400 });
         }
         outletProductData.addOns = addOns as Prisma.InputJsonValue;
+      }
+      if (body.variants !== undefined) {
+        const variants = parseProductVariants(body.variants);
+        if (!variants) {
+          return NextResponse.json({ error: "Check each variant name and price (up to 50 options)." }, { status: 400 });
+        }
+        outletProductData.variants = variants as Prisma.InputJsonValue;
       }
 
       if (body.price !== undefined) {

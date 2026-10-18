@@ -110,13 +110,14 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
                         </h3>
 
                         <p className="mt-1 text-sm font-medium text-gray-500">
-                          ₹{(item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)).toFixed(2)} each
+                          ₹{((item.variant?.price ?? item.price) + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)).toFixed(2)} each
                         </p>
+                        {item.variant && <p className="mt-1 text-xs font-semibold text-gray-600">{item.variant.name}</p>}
                         {item.addOns.length > 0 && <p className="mt-1 text-xs text-emerald-700">{item.addOns.map((addOn) => addOn.name).join(", ")}</p>}
                       </div>
 
                       <p className="whitespace-nowrap font-black text-gray-950">
-                        ₹{((item.price + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity).toFixed(2)}
+                        ₹{(((item.variant?.price ?? item.price) + item.addOns.reduce((sum, addOn) => sum + addOn.price, 0)) * item.quantity).toFixed(2)}
                       </p>
                     </div>
 
@@ -152,6 +153,7 @@ export default function CartPanel({ checkoutHref = "/checkout" }: { checkoutHref
                               outletId: item.outletId,
                               outletName: item.outletName,
                               addOns: item.addOns,
+                              variant: item.variant,
                               lineId: item.lineId,
                             })
                           }

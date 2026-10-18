@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ProductAddOnsEditor, { type ProductAddOnDraft } from "@/app/components/ProductAddOnsEditor";
 import { readProductAddOns } from "@/lib/product-addons";
+import ProductVariantsEditor, { type ProductVariantDraft } from "@/app/components/ProductVariantsEditor";
+import { readProductVariants } from "@/lib/product-variants";
 
 type Outlet = {
   id: string;
@@ -16,6 +18,7 @@ type ProductOutlet = {
   outletId: string;
   category: string;
   addOns: unknown;
+  variants: unknown;
   price: number;
   sgstRate: number;
   cgstRate: number;
@@ -53,6 +56,7 @@ export default function EditProductPage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Other");
   const [addOns, setAddOns] = useState<ProductAddOnDraft[]>([]);
+  const [variants, setVariants] = useState<ProductVariantDraft[]>([]);
 
   const [outletId, setOutletId] = useState("");
 const [price, setPrice] = useState("");
@@ -182,6 +186,7 @@ const [cgstRate, setCgstRate] = useState("");
           setGstin(outletsData.outlets?.find((outlet: Outlet) => outlet.id === firstOutlet.outletId)?.gstin ?? "");
           setCategory(firstOutlet.category || "Other");
           setAddOns(readProductAddOns(firstOutlet.addOns).map((addOn) => ({ ...addOn, price: String(addOn.price) })));
+          setVariants(readProductVariants(firstOutlet.variants).map((variant) => ({ ...variant, price: String(variant.price) })));
         }
       } catch (error) {
         console.error(
@@ -247,6 +252,7 @@ const [cgstRate, setCgstRate] = useState("");
               description.trim(),
             category,
             addOns: addOns.map((addOn) => ({ id: addOn.id, name: addOn.name, price: Number(addOn.price) })),
+            variants: variants.map((variant) => ({ id: variant.id, name: variant.name, price: Number(variant.price) })),
             isActive,
             outletId,
             price: Number(price),
@@ -517,6 +523,7 @@ const [cgstRate, setCgstRate] = useState("");
                 const selectedPrice = product?.outletProducts.find((entry) => entry.outletId === selectedId);
                 setCategory(selectedPrice?.category || "Other");
                 setAddOns(readProductAddOns(selectedPrice?.addOns).map((addOn) => ({ ...addOn, price: String(addOn.price) })));
+                setVariants(readProductVariants(selectedPrice?.variants).map((variant) => ({ ...variant, price: String(variant.price) })));
                 if (selectedPrice) setIsVeg(selectedPrice.isVeg);
                 setSgstRate(String(selectedPrice?.sgstRate ?? 0));
                 setCgstRate(String(selectedPrice?.cgstRate ?? 0));
@@ -576,6 +583,7 @@ const [cgstRate, setCgstRate] = useState("");
             <input id="menuCategory" value={category} onChange={(event) => setCategory(event.target.value)} maxLength={60} placeholder="Burger, Pasta, Dosa" style={{ width: "100%", padding: "12px 14px", border: "1px solid #d1d5db", borderRadius: "10px", fontSize: "15px", boxSizing: "border-box" }} />
             <p style={{ marginTop: "6px", fontSize: "12px", color: "#6b7280" }}>Use any section name. Products with the same name appear together in the menu.</p>
             <ProductAddOnsEditor value={addOns} onChange={setAddOns} />
+            <ProductVariantsEditor value={variants} onChange={setVariants} />
           </div>
 
           <div

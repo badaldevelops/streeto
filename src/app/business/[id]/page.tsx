@@ -74,6 +74,7 @@ if (user?.role === "SUPER_ADMIN") {
               id: true,
               category: true,
               addOns: true,
+              variants: true,
               price: true,
               isVeg: true,
               product: {

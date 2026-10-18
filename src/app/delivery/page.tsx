@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { readProductAddOns } from "@/lib/product-addons";
+import { readOrderItemOptions } from "@/lib/product-variants";
 
 type Delivery = {
   id: string;
@@ -527,7 +527,8 @@ export default function DeliveryPage() {
 
                             <span className="text-sm font-bold text-gray-800">
                               {item.product.name}
-                              {readProductAddOns(item.addOns).length > 0 && <span className="mt-1 block text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => addOn.name).join(", ")}</span>}
+                              {readOrderItemOptions(item.addOns).variant && <span className="mt-1 block text-xs font-semibold text-gray-600">Size: {readOrderItemOptions(item.addOns).variant!.name}</span>}
+                              {readOrderItemOptions(item.addOns).addOns.length > 0 && <span className="mt-1 block text-xs font-semibold text-emerald-700">Extras: {readOrderItemOptions(item.addOns).addOns.map((addOn) => addOn.name).join(", ")}</span>}
                             </span>
                           </div>
 

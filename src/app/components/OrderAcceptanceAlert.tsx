@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import OrderSoundControl from "@/app/components/OrderSoundControl";
-import { readProductAddOns } from "@/lib/product-addons";
+import { readOrderItemOptions } from "@/lib/product-variants";
 
 type AlertOrder = {
   id: string;
@@ -93,7 +93,8 @@ export default function OrderAcceptanceAlert({
                     <span className="mr-2 inline-flex min-w-7 justify-center rounded-lg bg-gray-100 px-2 py-1 text-xs font-black text-gray-600">{item.quantity}×</span>
                     {item.product.name}
                   </p>
-                  {readProductAddOns(item.addOns).length > 0 && <p className="ml-9 mt-1 text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</p>}
+                  {readOrderItemOptions(item.addOns).variant && <p className="ml-9 mt-1 text-xs font-semibold text-gray-600">Size: {readOrderItemOptions(item.addOns).variant!.name}</p>}
+                  {readOrderItemOptions(item.addOns).addOns.length > 0 && <p className="ml-9 mt-1 text-xs font-semibold text-emerald-700">Extras: {readOrderItemOptions(item.addOns).addOns.map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</p>}
                   <p className="shrink-0 font-extrabold text-gray-900">₹{item.totalPrice.toFixed(2)}</p>
                 </div>
               ))}

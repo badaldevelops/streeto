@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import CashfreePayButton from "../components/CashfreePayButton";
 import OrderRating from "../components/OrderRating";
 import { useCart } from "../components/CartProvider";
-import { readProductAddOns } from "@/lib/product-addons";
+import { readOrderItemOptions } from "@/lib/product-variants";
 
 type OrderItem = {
   id: string;
@@ -553,7 +553,8 @@ export default function MyOrdersPage() {
                             <p className="mt-1 text-xs font-medium text-gray-500">
                               ₹{item.unitPrice} × {item.quantity}
                             </p>
-                            {readProductAddOns(item.addOns).length > 0 && <p className="mt-1 text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</p>}
+                            {readOrderItemOptions(item.addOns).variant && <p className="mt-1 text-xs font-semibold text-gray-600">Size: {readOrderItemOptions(item.addOns).variant!.name}</p>}
+                            {readOrderItemOptions(item.addOns).addOns.length > 0 && <p className="mt-1 text-xs font-semibold text-emerald-700">Extras: {readOrderItemOptions(item.addOns).addOns.map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</p>}
                           </div>
                         </div>
 

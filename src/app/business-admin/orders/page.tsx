@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { readProductAddOns } from "@/lib/product-addons";
+import { readOrderItemOptions } from "@/lib/product-variants";
 
 type Order = {
   id: string;
@@ -904,7 +904,8 @@ setPollingEnabled(true);
                                   <p className="font-bold text-gray-900">
                                     {item.product.name}
                                   </p>
-                                  {readProductAddOns(item.addOns).length > 0 && <p className="mt-1 text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+${formatMoney(addOn.price)})`).join(", ")}</p>}
+                                  {readOrderItemOptions(item.addOns).variant && <p className="mt-1 text-xs font-semibold text-gray-600">Size: {readOrderItemOptions(item.addOns).variant!.name}</p>}
+                                  {readOrderItemOptions(item.addOns).addOns.length > 0 && <p className="mt-1 text-xs font-semibold text-emerald-700">Extras: {readOrderItemOptions(item.addOns).addOns.map((addOn) => `${addOn.name} (+${formatMoney(addOn.price)})`).join(", ")}</p>}
 
                                   <p className="mt-1 text-xs text-gray-500">
                                     {item.quantity} ×{" "}

@@ -138,6 +138,7 @@ model OutletProduct {
   id          String   @id @default(cuid())
   category    String   @default("Other")
   addOns      Json     @default("[]")
+  variants    Json     @default("[]")
   price       Float
   sgstRate    Float    @default(0)
   cgstRate    Float    @default(0)

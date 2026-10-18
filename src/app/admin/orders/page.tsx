@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { readProductAddOns } from "@/lib/product-addons";
+import { readOrderItemOptions } from "@/lib/product-variants";
 
 type OrderItem = {
   id: string;
@@ -530,7 +530,8 @@ export default function AdminOrdersPage() {
                       <span className="font-semibold">
                         ₹{item.totalPrice}
                       </span>
-                      {readProductAddOns(item.addOns).length > 0 && <span className="basis-full text-xs font-semibold text-emerald-700">Extras: {readProductAddOns(item.addOns).map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</span>}
+                      {readOrderItemOptions(item.addOns).variant && <span className="basis-full text-xs font-semibold text-gray-600">Size: {readOrderItemOptions(item.addOns).variant!.name}</span>}
+                      {readOrderItemOptions(item.addOns).addOns.length > 0 && <span className="basis-full text-xs font-semibold text-emerald-700">Extras: {readOrderItemOptions(item.addOns).addOns.map((addOn) => `${addOn.name} (+₹${addOn.price.toFixed(2)})`).join(", ")}</span>}
                     </div>
                   ))}
 

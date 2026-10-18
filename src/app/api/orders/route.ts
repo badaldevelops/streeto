@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getCashfreeConfig, getCashfreeMode, startCashfreeOrder } from "@/lib/cashfree";
 import { readProductAddOns, type ProductAddOn } from "@/lib/product-addons";
+import { readProductVariants, type ProductVariant } from "@/lib/product-variants";
 
 export async function POST(request: Request) {
   try {
@@ -62,7 +63,11 @@ export async function POST(request: Request) {
           ((item as { addOnIds?: unknown }).addOnIds !== undefined &&
             (!Array.isArray((item as { addOnIds?: unknown }).addOnIds) ||
               ((item as { addOnIds: unknown[] }).addOnIds.length > 20) ||
-              (item as { addOnIds: unknown[] }).addOnIds.some((id) => typeof id !== "string" || id.length > 100)))
+              (item as { addOnIds: unknown[] }).addOnIds.some((id) => typeof id !== "string" || id.length > 100))) ||
+          ((item as { variantId?: unknown }).variantId !== undefined &&
+            (item as { variantId?: unknown }).variantId !== null &&
+            (typeof (item as { variantId?: unknown }).variantId !== "string" ||
+              (item as { variantId: string }).variantId.length > 100))
       )
     ) {
       return NextResponse.json(
@@ -318,6 +323,7 @@ if (
     let sgstAmount = 0;
     let cgstAmount = 0;
     const selectedAddOnsByLine = new Map<number, ProductAddOn[]>();
+    const selectedVariantByLine = new Map<number, ProductVariant | null>();
 
     for (const [itemIndex, item] of items.entries()) {
       if (
@@ -351,6 +357,14 @@ if (
       }
 
       const configuredAddOns = readProductAddOns(product.addOns);
+      const configuredVariants = readProductVariants(product.variants);
+      const requestedVariantId: string | null = typeof item.variantId === "string" ? item.variantId : null;
+      const selectedVariant = requestedVariantId
+        ? configuredVariants.find((variant) => variant.id === requestedVariantId) ?? null
+        : null;
+      if ((configuredVariants.length > 0 && !selectedVariant) || (requestedVariantId && !selectedVariant)) {
+        return NextResponse.json({ error: "Choose a valid product size. Please update your cart." }, { status: 400 });
+      }
       const requestedIds: string[] = Array.isArray(item.addOnIds) ? item.addOnIds : [];
       if (new Set(requestedIds).size !== requestedIds.length) {
         return NextResponse.json({ error: "An add-on was selected more than once." }, { status: 400 });
@@ -361,8 +375,9 @@ if (
       }
       const validAddOns = selectedAddOns as ProductAddOn[];
       selectedAddOnsByLine.set(itemIndex, validAddOns);
+      selectedVariantByLine.set(itemIndex, selectedVariant);
 
-      const unitPrice = product.price + validAddOns.reduce((total, addOn) => total + addOn.price, 0);
+      const unitPrice = (selectedVariant?.price ?? product.price) + validAddOns.reduce((total, addOn) => total + addOn.price, 0);
       const lineSubtotal = unitPrice * item.quantity;
       subtotal += lineSubtotal;
       if (outlet.gstin) {
@@ -508,7 +523,8 @@ customerLongitude:
                   );
 
                 const selectedAddOns = selectedAddOnsByLine.get(itemIndex) ?? [];
-                const unitPrice = product!.price + selectedAddOns.reduce((total, addOn) => total + addOn.price, 0);
+                const selectedVariant = selectedVariantByLine.get(itemIndex) ?? null;
+                const unitPrice = (selectedVariant?.price ?? product!.price) + selectedAddOns.reduce((total, addOn) => total + addOn.price, 0);
                 const itemSubtotal = unitPrice * item.quantity;
                 return {
                   productId:
@@ -521,7 +537,7 @@ customerLongitude:
 
                   totalPrice:
                     itemSubtotal,
-                  addOns: selectedAddOns,
+                  addOns: { variant: selectedVariant, addOns: selectedAddOns },
                   sgstAmount: outlet.gstin
                     ? Math.round(itemSubtotal * product!.sgstRate) / 100
                     : 0,

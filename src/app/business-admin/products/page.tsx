@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { readProductVariants } from "@/lib/product-variants";
 
 type OutletProduct = {
   id: string;
   price: number;
+  variants: unknown;
   isAvailable: boolean;
   isVeg: boolean;
   outlet: {
@@ -369,6 +371,7 @@ export default function BusinessAdminProductsPage() {
                                     outletProduct.price
                                   )}
                                 </p>
+                                {readProductVariants(outletProduct.variants).length > 0 && <p className="mt-1 max-w-40 text-[10px] font-semibold text-gray-600">{readProductVariants(outletProduct.variants).map((variant) => `${variant.name} ₹${variant.price}`).join(" · ")}</p>}
 
                                 <p
                                   className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
