@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import AddToCartButton from "@/app/components/AddToCartButton";
 import { readProductAddOns } from "@/lib/product-addons";
 import { readProductVariants } from "@/lib/product-variants";
@@ -20,7 +23,6 @@ export default function CustomerMenuSections({
   companyName,
   storeOpen,
   selectedCategory,
-  baseHref,
 }: {
   products: MenuProduct[];
   outletId: string;
@@ -29,30 +31,27 @@ export default function CustomerMenuSections({
   companyName: string;
   storeOpen: boolean;
   selectedCategory: string | null;
-  baseHref: string;
 }) {
+  const [activeCategory, setActiveCategory] = useState(selectedCategory);
   const groups = new Map<string, MenuProduct[]>();
   for (const product of products) {
     const category = product.category?.trim() || "Other";
     groups.set(category, [...(groups.get(category) ?? []), product]);
   }
   const sections = Array.from(groups.entries());
-  const visibleSections = selectedCategory
-    ? (groups.has(selectedCategory) ? [[selectedCategory, groups.get(selectedCategory)!] as [string, MenuProduct[]]] : [])
+  const visibleSections = activeCategory
+    ? (groups.has(activeCategory) ? [[activeCategory, groups.get(activeCategory)!] as [string, MenuProduct[]]] : [])
     : sections;
-  const sectionHref = (category?: string) => category
-    ? `${baseHref}&section=${encodeURIComponent(category)}`
-    : baseHref;
 
   return (
     <>
       <nav aria-label={`${outletName} menu sections`} className="mb-5 flex snap-x gap-2 overflow-x-auto scroll-smooth pb-2">
-        <a href={sectionHref()} aria-current={!selectedCategory ? "page" : undefined} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${!selectedCategory ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>All</a>
+        <button type="button" onClick={() => setActiveCategory(null)} aria-pressed={!activeCategory} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${!activeCategory ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>All</button>
         {sections.map(([category]) => (
-          <a key={category} href={sectionHref(category)} aria-current={selectedCategory === category ? "page" : undefined} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${selectedCategory === category ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>{category}</a>
+          <button key={category} type="button" onClick={() => setActiveCategory(category)} aria-pressed={activeCategory === category} className={`shrink-0 snap-start rounded-full border px-4 py-2 text-sm font-extrabold shadow-sm ${activeCategory === category ? "border-orange-600 bg-orange-600 text-white" : "border-orange-200 bg-white text-gray-700 hover:border-orange-400 hover:text-orange-700"}`}>{category}</button>
         ))}
       </nav>
-      <div className="space-y-8">
+      <div key={activeCategory ?? "all"} className="menu-category-slide space-y-8">
         {visibleSections.map(([category, categoryProducts]) => (
           <section key={category}>
             <div className="mb-3 flex items-end justify-between border-b border-orange-100 pb-3">

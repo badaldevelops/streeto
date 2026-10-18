@@ -320,7 +320,6 @@ if (user?.role === "SUPER_ADMIN") {
                       companyName={business.name}
                       storeOpen={business.isOpen}
                       selectedCategory={query.section || null}
-                      baseHref={`/business/${business.id}?outletId=${encodeURIComponent(outlet.id)}&pickupOnly=${pickupOnly ? "1" : "0"}&orderType=${encodeURIComponent(initialOrderType)}`}
                     />
                   </>
                 )}
