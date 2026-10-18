@@ -227,8 +227,8 @@ if (user?.role === "SUPER_ADMIN") {
                 <div className="relative mb-4 overflow-hidden rounded-2xl border border-orange-100 bg-white p-3 shadow-sm sm:mb-6 sm:rounded-[28px] sm:p-6">
                   <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-orange-100/60 blur-2xl" />
 
-                  <div className="relative flex flex-col gap-3 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-4">
+                  <div className="relative grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)] lg:items-center">
+                    <div className="flex min-w-0 items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-xl text-white shadow-md shadow-orange-200 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl">
                         🏪
                       </div>
@@ -248,6 +248,7 @@ if (user?.role === "SUPER_ADMIN") {
                           {(outlet.foodType === "VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">🟢 Veg</span>}
                           {(outlet.foodType === "NON_VEG" || outlet.foodType === "BOTH") && <span className="rounded-full bg-red-50 px-2 py-1 text-red-700">🔴 Non-veg</span>}
                           <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800">⭐ {ratingsByOutlet.get(outlet.id)?.average === null || !ratingsByOutlet.has(outlet.id) ? "New · no ratings" : `${ratingsByOutlet.get(outlet.id)!.average!.toFixed(1)} · ${ratingsByOutlet.get(outlet.id)!.count} ratings`}</span>
+                          <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-600">{outlet.outletProducts.length} items</span>
                         </div>
 
                         <div className="mt-2 space-y-1">
@@ -258,52 +259,40 @@ if (user?.role === "SUPER_ADMIN") {
                           )}
 
                         </div>
-                        {outlet.latitude !== null && outlet.longitude !== null && (
-                          <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:max-w-md">
-                            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                              <div>
-                                <p className="text-sm font-extrabold text-gray-900">Outlet location</p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-500">Find us on the map</p>
-                              </div>
-                              <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 text-orange-600">
-                                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                              </span>
-                            </div>
-                            <iframe
-                              title={`${outlet.name} location`}
-                              src={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}&z=15&output=embed`}
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              className="h-40 w-full border-0"
-                            />
-                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-orange-600">
-                              <span className="flex min-w-0 items-center gap-3">
-                                <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition group-hover:bg-blue-100">
-                                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5.5 9 3l6 2.5L20 3v15.5L15 21l-6-2.5L4 21V5.5Z"/><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v15.5M15 5.5V21M12 8.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7s-3.5-3-3.5-5.5a3.5 3.5 0 1 1 7 0C15.5 12.5 12 15.5 12 15.5Z"/></svg>
-                                </span>
-                                <span className="min-w-0 text-left">
-                                  <span className="block text-sm font-extrabold text-gray-900">Open in Google Maps</span>
-                                  <span className="mt-0.5 block text-xs font-medium text-gray-500">Get directions to this outlet</span>
-                                </span>
-                              </span>
-                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-blue-700" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 4h6v6m0-6-9 9"/><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
-                            </a>
+                      </div>
+                    </div>
+                    {outlet.latitude !== null && outlet.longitude !== null && (
+                      <div className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:justify-self-center">
+                        <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2.5">
+                          <div>
+                            <p className="text-sm font-extrabold text-gray-900">Outlet location</p>
+                            <p className="mt-0.5 text-xs font-medium text-gray-500">Find us on the map</p>
                           </div>
-                        )}
+                          <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                          </span>
+                        </div>
+                        <iframe
+                          title={`${outlet.name} location`}
+                          src={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}&z=15&output=embed`}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          className="h-32 w-full border-0"
+                        />
+                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-3 border-t border-gray-100 px-3 py-2.5 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-orange-600">
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition group-hover:bg-blue-100">
+                              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5.5 9 3l6 2.5L20 3v15.5L15 21l-6-2.5L4 21V5.5Z"/><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v15.5M15 5.5V21M12 8.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm0 7s-3.5-3-3.5-5.5a3.5 3.5 0 1 1 7 0C15.5 12.5 12 15.5 12 15.5Z"/></svg>
+                            </span>
+                            <span className="min-w-0 text-left">
+                              <span className="block text-sm font-extrabold text-gray-900">Open in Google Maps</span>
+                              <span className="mt-0.5 block text-xs font-medium text-gray-500">Get directions to this outlet</span>
+                            </span>
+                          </span>
+                          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-blue-700" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 4h6v6m0-6-9 9"/><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
+                        </a>
                       </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gray-400">
-                          Menu
-                        </p>
-
-                        <p className="mt-1 text-sm font-black text-gray-800">
-                          {outlet.outletProducts.length} items
-                        </p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
