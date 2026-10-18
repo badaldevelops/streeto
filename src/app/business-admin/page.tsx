@@ -534,7 +534,7 @@ products and outlets from one place.
                   {company?.name || "Business"}
                 </h3>
 
-                <p className="mt-2 text-sm leading-6 text-gray-300">
+                <p className="mt-2 text-sm leading-6 text-white/85">
                   Keep your menu updated, manage incoming orders
                   and monitor your business performance from here.
                 </p>

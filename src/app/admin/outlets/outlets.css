@@ -71,7 +71,7 @@
 .hero-back {
   position: relative;
   z-index: 2;
-  color: rgba(255,255,255,.65);
+  color: rgba(255,255,255,.88);
 }
 
 .hero-back:hover {
@@ -87,7 +87,7 @@
 .outlets-eyebrow,
 .section-eyebrow {
   display: inline-block;
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .2em;
@@ -101,10 +101,14 @@
   letter-spacing: -.05em;
 }
 
+.outlets-eyebrow {
+  color: #fff;
+}
+
 .outlets-hero-content p {
   max-width: 550px;
   margin-top: 14px;
-  color: rgba(255,255,255,.58);
+  color: rgba(255,255,255,.88);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -136,7 +140,7 @@
 .outlets-summary span {
   display: block;
   margin-top: 3px;
-  color: rgba(255,255,255,.45);
+  color: rgba(255,255,255,.82);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -225,7 +229,7 @@
 }
 
 .city-arrow {
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 20px;
   transition: .2s ease;
 }
@@ -249,7 +253,7 @@
 
 .city-info p {
   margin-top: 5px;
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 13px;
 }
 
@@ -264,7 +268,7 @@
   gap: 10px;
   border-top: 1px solid #f0f0f0;
   padding-top: 13px;
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 11px;
   font-weight: 700;
 }
@@ -298,7 +302,7 @@
 
 .no-outlets p {
   margin-top: 6px;
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 13px;
 }
 
@@ -376,7 +380,7 @@
 
 .outlets-footer {
   padding: 28px 0 8px;
-  color: #9ca3af;
+  color: #4b5563;
   text-align: center;
   font-size: 11px;
   font-weight: 600;

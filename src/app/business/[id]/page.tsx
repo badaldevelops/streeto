@@ -166,7 +166,7 @@ if (user?.role === "SUPER_ADMIN") {
           <div className="absolute -bottom-28 right-24 h-64 w-64 rounded-full bg-red-500/10 blur-3xl" />
 
           <div className="relative max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-300/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-orange-200 backdrop-blur sm:mb-5 sm:px-4 sm:py-2 sm:text-xs">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-white backdrop-blur sm:mb-5 sm:px-4 sm:py-2 sm:text-xs">
               <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
               {business.isOpen ? "Now accepting orders" : "Store closed"}
             </div>
@@ -175,7 +175,7 @@ if (user?.role === "SUPER_ADMIN") {
               {business.name}
             </h2>
 
-            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-gray-300 sm:mt-4 sm:text-base sm:leading-8">
+            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-white/90 sm:mt-4 sm:text-base sm:leading-8">
               Explore the menu, choose your favourite food and
               order from the outlet that works best for you.
             </p>

@@ -42,7 +42,7 @@ export default function Home() {
           <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-y-1/2 rounded-full bg-orange-400/5 blur-3xl" />
 
           <div className="relative max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-300/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-orange-200 backdrop-blur sm:mb-5 sm:px-4 sm:py-2 sm:text-xs">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-white backdrop-blur sm:mb-5 sm:px-4 sm:py-2 sm:text-xs">
               <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
               Local food marketplace
             </div>
@@ -55,7 +55,7 @@ export default function Home() {
               </span>
             </h2>
 
-            <p className="mt-3 max-w-2xl text-[13px] font-medium leading-5 text-gray-300 sm:mt-5 sm:text-base sm:leading-8">
+            <p className="mt-3 max-w-2xl text-[13px] font-medium leading-5 text-white/90 sm:mt-5 sm:text-base sm:leading-8">
               Discover your favourite local businesses, explore
               their menus and choose Self Receive or Dine In at checkout.
             </p>
