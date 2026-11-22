@@ -13,9 +13,11 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   metadataBase: new URL("https://qtoo.in"),
   title: {
-    default: "Qtoo | Good food. Less wait.",
+    default: "Badal Baliyan | Qtoo",
     template: "%s | Qtoo",
   },
+  authors: [{ name: "Badal Baliyan" }],
+  creator: "Badal Baliyan",
   applicationName: "Qtoo",
   manifest: "/manifest.webmanifest?v=3",
   icons: {
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Qtoo",
-    title: "Qtoo | Good food. Less wait.",
+    title: "Badal Baliyan | Qtoo",
     description: "Discover local food outlets, browse menus, and order ahead for pickup or dine in.",
     url: "https://qtoo.in",
   },

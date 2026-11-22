@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import PolicyPageShell from "../components/PolicyPageShell";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Qtoo",
-  description: "How Qtoo uses account, location, order, and payment-status information.",
+  title: { absolute: "Privacy Policy | Badal Baliyan | Qtoo" },
+  description: "Qtoo's privacy policy, including information about founder Badal Baliyan and how the service handles account, location, order, and payment data.",
 };
 
 export default function PrivacyPage() {
   return (
     <PolicyPageShell title="Privacy Policy" updatedAt="15 October 2026">
       <p>This policy describes the information Qtoo uses to run accounts, find local outlets, and manage orders. Qtoo uses the information for these services and does not sell personal information for advertising.</p>
+
+      <section>
+        <h2 className="text-lg font-black text-gray-950">About Qtoo</h2>
+        <p>Qtoo was founded by Badal Baliyan.</p>
+      </section>
 
       <section>
         <h2 className="text-lg font-black text-gray-950">Information you provide</h2>
