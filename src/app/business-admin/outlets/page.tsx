@@ -531,7 +531,7 @@ export default function BusinessAdminOutletsPage() {
             📍 Select Outlet Location
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Map par location select karo ya marker ko drag karo.
+            Select a location on the map or drag the marker.
           </p>
         </div>
 
@@ -872,7 +872,7 @@ export default function BusinessAdminOutletsPage() {
         </p>
 
         <p className="mt-1 text-xs font-medium text-orange-700">
-          Google Map se outlet ki exact location select karo.
+          Select the outlet's exact location on the Google Map.
         </p>
 
         {form.latitude && form.longitude ? (
@@ -881,7 +881,7 @@ export default function BusinessAdminOutletsPage() {
           </p>
         ) : (
           <p className="mt-2 text-xs font-semibold text-slate-500">
-            Location abhi select nahi ki gayi.
+            No location selected yet.
           </p>
         )}
       </div>

@@ -90,7 +90,7 @@ export default function AdminCommissionsPage() {
         <header className="rounded-3xl bg-gradient-to-r from-orange-600 to-red-500 p-6 text-white shadow-xl sm:p-8">
           <p className="text-xs font-black uppercase tracking-widest text-orange-100">Qtoo Finance</p>
           <h1 className="mt-2 text-3xl font-black">Outlet Commission Ledger</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-orange-50">Naye paid orders par Qtoo ka 2% fee customer ke total bill par aur us fee par 18% GST calculate hota hai. Dono outlet payout se adjust hote hain; purane orders ki saved values nahi badli gayi hain.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-orange-50">New paid orders include a Qtoo fee of 2% of the customer's total bill, plus 18% GST on that fee. Both amounts are deducted from the outlet payout. Saved values for older orders are unchanged.</p>
         </header>
 
         {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 font-semibold text-red-700">{error}</div>}

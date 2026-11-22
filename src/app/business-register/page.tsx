@@ -45,7 +45,7 @@ export default function BusinessRegisterPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-3xl" aria-hidden="true">✓</div>
           <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.18em] text-green-700">Request submitted</p>
           <h1 className="mt-2 text-2xl font-black text-gray-950">Business verification is pending</h1>
-          <p className="mt-3 text-sm leading-6 text-gray-600">Super Admin ko tumhari business, outlet aur licence details mil gayi hain. Approval ke baad tum Business Login se sign in kar paoge.</p>
+          <p className="mt-3 text-sm leading-6 text-gray-600">The Super Admin has received your business, outlet, and licence details. After approval, you can sign in through Business Login.</p>
           <Link href="/business-login" className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-extrabold text-white">Go to Business Login</Link>
         </section>
       </main>
@@ -58,7 +58,7 @@ export default function BusinessRegisterPage() {
         <div className="text-center">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-orange-700">Qtoo Business</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-950">Create your business account</h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">Business, owner aur pehle outlet ki details ek hi baar bharo. Super Admin verify karega; approval ke baad account active hoga.</p>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">Enter your business, owner, and first outlet details once. The Super Admin will review them, and your account will be activated after approval.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-7">

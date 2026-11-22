@@ -44,7 +44,7 @@ export default function PayoutsPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function requestWithdrawal(outlet: OutletPayout) {
-    if (!window.confirm(`Super Admin se ${money(outlet.withdrawableAmount)} withdrawal request bhejein for ${outlet.outletName}?`)) return;
+    if (!window.confirm(`Send a withdrawal request for ${money(outlet.withdrawableAmount)} for ${outlet.outletName} to the Super Admin?`)) return;
     setSaving(outlet.outletId);
     setMessage("");
     setError("");
@@ -56,7 +56,7 @@ export default function PayoutsPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not request withdrawal.");
-      setMessage(`${money(data.payoutRequest.amount)} withdrawal request Super Admin ko bhej di gayi.`);
+      setMessage(`A withdrawal request for ${money(data.payoutRequest.amount)} was sent to the Super Admin.`);
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not request withdrawal.");
@@ -76,7 +76,7 @@ export default function PayoutsPage() {
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-orange-600">Outlet payouts</p>
           <h1 className="mt-1 text-3xl font-black text-gray-900">Outlet earnings</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">Har outlet ka net balance dekhein aur withdrawal request Super Admin ko bhejein. Payment aur UTR Super Admin record karega.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">Review each outlet's net balance and send withdrawal requests to the Super Admin. The Super Admin records the payment and UTR.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-right">
           <BalanceCard label="Outlet balance" value={totalBalance} />
@@ -86,14 +86,14 @@ export default function PayoutsPage() {
       </div>
 
       <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-        Aapka balance har paid order par Qtoo ke 2% fee aur us fee ke 18% GST ko minus karke dikhaya gaya hai. Customer bill mein extra checkout charge nahi hai. Cashfree processing fee, agar lage, merchant settlement se alag kat sakti hai.
+        Your balance is shown after deducting Qtoo's 2% fee on each paid order and 18% GST on that fee. No extra checkout charge is added to the customer bill. Cashfree processing fees, if any, may be deducted separately from the merchant settlement.
       </div>
 
       {message && <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">{message}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-800">{error}</p>}
 
-      {loading ? <p className="mt-8 text-sm text-gray-500">Earnings load ho rahi hain…</p> : outlets.length === 0 ? (
-        <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">Abhi kisi outlet ke liye successful Cashfree payment nahi hui.</section>
+      {loading ? <p className="mt-8 text-sm text-gray-500">Loading earnings…</p> : outlets.length === 0 ? (
+        <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">There are no successful Cashfree payments for your outlets yet.</section>
       ) : (
         <div className="mt-6 space-y-4">
           {outlets.map((outlet) => (

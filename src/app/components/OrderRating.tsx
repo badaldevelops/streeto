@@ -21,12 +21,12 @@ export default function OrderRating({ orderId, initialStars }: { orderId: string
         body: JSON.stringify({ orderId, stars: selectedStars }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Rating save nahi ho paayi.");
+      if (!response.ok) throw new Error(data.error || "Unable to save your rating.");
       setSavedStars(data.rating.stars);
       setSelectedStars(data.rating.stars);
       setMessage("Thanks for rating this outlet!");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Rating save nahi ho paayi.");
+      setError(cause instanceof Error ? cause.message : "Unable to save your rating.");
     } finally {
       setSaving(false);
     }

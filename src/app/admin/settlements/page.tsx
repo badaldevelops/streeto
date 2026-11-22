@@ -66,11 +66,11 @@ export default function AdminSettlementsPage() {
       }
       const response = await fetch("/api/admin/settlements", { cache: "no-store" });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Settlement list load nahi hui.");
+      if (!response.ok) throw new Error(result.error || "Unable to load the settlement list.");
       setData(result);
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Settlement list load nahi hui.");
+      setError(cause instanceof Error ? cause.message : "Unable to load the settlement list.");
     } finally {
       setLoading(false);
     }
@@ -81,10 +81,10 @@ export default function AdminSettlementsPage() {
   async function markRequestPaid(request: SettlementData["payoutRequests"][number]) {
     const utr = utrs[request.id]?.trim() || "";
     if (utr.length < 4) {
-      setError("Paid mark karne se pehle valid UTR enter karo.");
+      setError("Enter a valid UTR before marking this payout as paid.");
       return;
     }
-    if (!window.confirm(`${money(request.amount)} ${request.businessName} · ${request.outletName} ko bank/UPI se transfer kar diya hai? Transfer ke baad hi Paid mark karein.`)) return;
+    if (!window.confirm(`Have you transferred ${money(request.amount)} to ${request.businessName} · ${request.outletName} by bank/UPI? Mark it as paid only after the transfer.`)) return;
 
     setSavingRequestId(request.id);
     setError("");
@@ -96,12 +96,12 @@ export default function AdminSettlementsPage() {
         body: JSON.stringify({ payoutRequestId: request.id, utr }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Payout update nahi ho paya.");
-      setActionMessage(`${money(result.payout.amount)} paid record ho gaya. UTR: ${result.payout.utr}`);
+      if (!response.ok) throw new Error(result.error || "Unable to update the payout.");
+      setActionMessage(`${money(result.payout.amount)} was recorded as paid. UTR: ${result.payout.utr}`);
       setUtrs((current) => ({ ...current, [request.id]: "" }));
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Payout update nahi ho paya.");
+      setError(cause instanceof Error ? cause.message : "Unable to update the payout.");
     } finally {
       setSavingRequestId(null);
     }
@@ -122,13 +122,13 @@ export default function AdminSettlementsPage() {
         <header className="rounded-3xl bg-gradient-to-r from-orange-600 to-red-500 p-6 text-white shadow-xl sm:p-8">
           <p className="text-xs font-black uppercase tracking-widest text-orange-100">Qtoo Finance · Super Admin</p>
           <h1 className="mt-2 text-3xl font-black">Outlet settlements</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-orange-50">Har outlet ka successful online order amount, pending payable aur pehle record kiye gaye transfers ek jagah dekho.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-orange-50">View successful online order totals, pending payouts, and recorded transfers for every outlet.</p>
         </header>
 
         {error && <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 font-semibold text-red-700">{error}</div>}
         {actionMessage && <div role="status" className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 font-semibold text-green-800">{actionMessage}</div>}
 
-        {loading ? <p className="py-12 text-center font-bold text-gray-500">Outlet settlement data load ho raha hai…</p> : data && <>
+        {loading ? <p className="py-12 text-center font-bold text-gray-500">Loading outlet settlement data…</p> : data && <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SummaryCard label="Outlets" value={String(data.totals.outletCount)} />
             <SummaryCard label="Successful online orders" value={String(data.totals.paidOrderCount)} />
@@ -141,15 +141,15 @@ export default function AdminSettlementsPage() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-            <strong>Hisaab ka matlab:</strong> Har paid order par Qtoo fee 2% hai aur GST us fee ka 18%; outlet net = customer bill minus fee aur GST. Customer checkout mein extra fee nahi hai. Cashfree fee merchant settlement se alag kat sakti hai. App UTR record karta hai, bank transfer khud execute nahi karta.
+            <strong>How settlements work:</strong> Qtoo charges a 2% fee on each paid order, plus 18% GST on that fee. The outlet's net amount is the customer payment minus the fee and GST. No extra fee is added at customer checkout. Cashfree processing fees may be deducted separately from the merchant settlement. The app records UTRs but does not initiate bank transfers.
           </div>
 
           <section className="mt-6 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 bg-blue-50 px-5 py-4">
-              <div><h2 className="text-lg font-black text-blue-950">Outlet withdrawal requests</h2><p className="mt-1 text-sm text-blue-800">Bank/UPI transfer manually bhejne ke baad UTR daal kar Paid record karein.</p></div>
+              <div><h2 className="text-lg font-black text-blue-950">Outlet withdrawal requests</h2><p className="mt-1 text-sm text-blue-800">After sending the bank/UPI transfer, enter the UTR to record it as paid.</p></div>
               <span className="rounded-full bg-white px-3 py-1 text-sm font-extrabold text-blue-800">{data.payoutRequests.length} pending</span>
             </div>
-            {data.payoutRequests.length === 0 ? <p className="p-5 text-sm text-gray-500">Abhi koi outlet withdrawal request nahi hai.</p> : <div className="divide-y divide-gray-100">
+            {data.payoutRequests.length === 0 ? <p className="p-5 text-sm text-gray-500">There are no outlet withdrawal requests.</p> : <div className="divide-y divide-gray-100">
               {data.payoutRequests.map((request) => <article key={request.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
                 <div>
                   <h3 className="font-extrabold text-gray-900">{request.businessName} · {request.outletName}</h3>
@@ -166,7 +166,7 @@ export default function AdminSettlementsPage() {
           </section>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <input aria-label="Search outlets" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Outlet ya business search karo" className="min-h-12 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-orange-400" />
+            <input aria-label="Search outlets" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search outlets or businesses" className="min-h-12 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-orange-400" />
             <button onClick={() => void load()} className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700">Refresh</button>
           </div>
 
@@ -190,9 +190,9 @@ export default function AdminSettlementsPage() {
                   <thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="px-5 py-3">Order</th><th className="px-5 py-3">Order date</th><th className="px-5 py-3">Payment</th><th className="px-5 py-3">Outlet payout</th><th className="px-5 py-3">UTR / note</th><th className="px-5 py-3 text-right">Customer paid</th><th className="px-5 py-3 text-right">Qtoo fee 2%</th><th className="px-5 py-3 text-right">GST 18%</th><th className="px-5 py-3 text-right">Outlet earns</th></tr></thead>
                   <tbody>{outlet.orders.map((order) => <tr key={order.paymentId} className="border-t border-gray-100"><td className="px-5 py-3 font-bold text-gray-800">{order.orderNumber}</td><td className="px-5 py-3 text-gray-600">{new Date(order.orderDate).toLocaleString("en-IN")}</td><td className="px-5 py-3"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{order.method === "UPI" ? "UPI confirmed" : "Cashfree paid"}</span></td><td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${order.payoutStatus === "RECORDED_PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"}`}>{order.payoutStatus === "RECORDED_PAID" ? `Recorded${order.payoutAt ? ` · ${new Date(order.payoutAt).toLocaleDateString("en-IN")}` : ""}` : "Pending"}</span></td><td className="px-5 py-3 text-gray-600">{order.payoutReference || "—"}</td><td className="px-5 py-3 text-right text-gray-700">{money(order.amount)}</td><td className="px-5 py-3 text-right text-orange-700">{money(order.platformCommission)}</td><td className="px-5 py-3 text-right text-orange-700">{money(order.commissionGst)}</td><td className="px-5 py-3 text-right font-extrabold text-gray-900">{money(order.outletPayoutAmount)}</td></tr>)}</tbody>
                 </table>
-              </div> : <p className="p-5 text-sm text-gray-500">Is outlet ke liye abhi koi successful online payment nahi hai.</p>}
+              </div> : <p className="p-5 text-sm text-gray-500">There are no successful online payments for this outlet yet.</p>}
             </section>)}
-            {!filtered.length && <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">Search se matching outlet nahi mila.</div>}
+            {!filtered.length && <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">No outlets match your search.</div>}
           </div>
           <p className="mt-5 text-xs leading-5 text-gray-500">{data.note}</p>
         </>}
